@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Profil certificat TSA — Time Stamping Authority
+  RFC 3161 + ETSI EN 319 421
+  EKU id-kp-timeStamping UNIQUEMENT (critique)
+-->
+<java version="17" class="java.beans.XMLDecoder">
+  <object class="org.ejbca.core.model.ca.certificateprofiles.EndUserCertificateProfile">
+    <void property="keyUsage">
+      <array class="boolean" length="9">
+        <void index="0"><boolean>true</boolean></void>   <!-- digitalSignature -->
+      </array>
+    </void>
+    <void property="encodedValidity"><string>1y</string></void>
+    <!-- EKU TimeStamping critique -->
+    <void property="extendedKeyUsageCritical"><boolean>true</boolean></void>
+    <void property="extendedKeyUsageOids">
+      <array class="java.lang.String" length="1">
+        <void index="0"><string>1.3.6.1.5.5.7.3.8</string></void>
+      </array>
+    </void>
+    <void property="useCRLDistributionPoint"><boolean>true</boolean></void>
+    <void property="useAuthorityInformationAccess"><boolean>true</boolean></void>
+  </object>
+</java>

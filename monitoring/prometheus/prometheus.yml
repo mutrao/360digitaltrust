@@ -1,0 +1,44 @@
+# Prometheus — Configuration de collecte des métriques PKI
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    project: '360digitaltrust'
+    env: 'development'
+
+alertmanager_configs:
+  - targets:
+      - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+
+  # API de signature
+  - job_name: 'signature-api'
+    static_configs:
+      - targets: ['signature-api:8000']
+    metrics_path: /metrics
+    scheme: http
+
+  # PostgreSQL EJBCA
+  - job_name: 'postgres-ejbca'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis cache
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # Prometheus lui-même
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Traefik
+  - job_name: 'traefik'
+    static_configs:
+      - targets: ['gateway:8080']
+    metrics_path: /metrics

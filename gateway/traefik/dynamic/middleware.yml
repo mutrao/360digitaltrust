@@ -1,0 +1,32 @@
+# Traefik — Middlewares de sécurité
+http:
+  middlewares:
+
+    # En-têtes de sécurité HTTP
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: strict-origin-when-cross-origin
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+
+    # Rate limiting — API de signature
+    rate-limit-api:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1m
+
+    # Rate limiting — OCSP (plus tolérant)
+    rate-limit-ocsp:
+      rateLimit:
+        average: 500
+        burst: 200
+        period: 1m
+
+    # Compression
+    compress:
+      compress: {}
