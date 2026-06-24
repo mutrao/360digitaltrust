@@ -1,0 +1,74 @@
+# Alertes Prometheus — Infrastructure PKI 360DigitalTrust
+groups:
+
+  - name: pki_availability
+    interval: 30s
+    rules:
+
+      - alert: SignatureAPIDown
+        expr: up{job="signature-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Signature API inaccessible"
+          description: "Le microservice de signature ne répond plus depuis 1 minute."
+
+      - alert: PostgreSQLDown
+        expr: up{job="postgres-ejbca"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Base de données EJBCA inaccessible"
+          description: "PostgreSQL (EJBCA) ne répond plus depuis 2 minutes."
+
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache Redis inaccessible"
+          description: "Redis (cache OCSP/CRL) ne répond plus. Les performances OCSP seront dégradées."
+
+  - name: pki_performance
+    rules:
+
+      - alert: HighSignatureLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket{
+              job="signature-api",
+              handler=~"/v1/sign/.*"
+            }[5m])
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence signature élevée (P95 > 5s)"
+          description: "Le P95 de latence des signatures dépasse 5 secondes."
+
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{job="signature-api", status=~"5.."}[5m]) /
+          rate(http_requests_total{job="signature-api"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux d'erreur API > 5%"
+          description: "Plus de 5% des requêtes retournent une erreur 5xx."
+
+  - name: pki_database
+    rules:
+
+      - alert: PostgreSQLTooManyConnections
+        expr: pg_stat_database_numbackends{datname="ejbca"} > 40
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Trop de connexions PostgreSQL EJBCA"
+          description: "Nombre de connexions : {{ $value }}. Seuil : 40."
