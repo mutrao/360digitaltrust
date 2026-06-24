@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Profil certificat de signature documentaire
+  eIDAS NCP — PAdES / XAdES / CAdES
+  Conforme ETSI EN 319 412-2
+-->
+<java version="17" class="java.beans.XMLDecoder">
+  <object class="org.ejbca.core.model.ca.certificateprofiles.EndUserCertificateProfile">
+    <!-- Usage des clés -->
+    <void property="keyUsage">
+      <array class="boolean" length="9">
+        <void index="0"><boolean>true</boolean></void>   <!-- digitalSignature -->
+        <void index="1"><boolean>true</boolean></void>   <!-- nonRepudiation -->
+      </array>
+    </void>
+    <!-- Durée de validité : 2 ans -->
+    <void property="encodedValidity"><string>2y</string></void>
+    <!-- Algorithmes autorisés -->
+    <void property="availableKeyAlgorithms">
+      <array class="java.lang.String" length="2">
+        <void index="0"><string>RSA</string></void>
+        <void index="1"><string>ECDSA</string></void>
+      </array>
+    </void>
+    <!-- Tailles de clés -->
+    <void property="availableBitLengths">
+      <array class="int" length="3">
+        <void index="0"><int>2048</int></void>
+        <void index="1"><int>3072</int></void>
+        <void index="2"><int>4096</int></void>
+      </array>
+    </void>
+    <!-- QC Statements eIDAS -->
+    <void property="useQCStatement"><boolean>true</boolean></void>
+    <void property="useQCEtsiQCCompliance"><boolean>true</boolean></void>
+    <!-- OCSP et CRL -->
+    <void property="useOcspNoCheck"><boolean>false</boolean></void>
+    <void property="useCRLDistributionPoint"><boolean>true</boolean></void>
+    <void property="useFreshestCRL"><boolean>true</boolean></void>
+    <void property="useAuthorityInformationAccess"><boolean>true</boolean></void>
+    <!-- Politique de certificat -->
+    <void property="useCertificatePolicies"><boolean>true</boolean></void>
+  </object>
+</java>
