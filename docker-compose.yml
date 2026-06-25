@@ -8,9 +8,9 @@ version: "3.9"
 networks:
   pki-internal:
     driver: bridge
-    internal: true        # isolé d'Internet — accès uniquement inter-services
+    internal: true
   pki-dmz:
-    driver: bridge        # exposé via Traefik
+    driver: bridge
   vault-net:
     driver: bridge
     internal: true
@@ -57,7 +57,6 @@ services:
 
   # ---------------------------------------------------------
   # 2. SOFTHSM2 — Simulation HSM PKCS#11 (développement)
-  # Remplacé par Thales Luna / Utimaco en production
   # ---------------------------------------------------------
   pki-hsm:
     build:
@@ -79,9 +78,7 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------
-  # 3. EJBCA CE 8.x — Moteur PKI (CA + OCSP + TSA + CRL)
-  # Port 8443 : HTTPS admin, REST API
-  # Port 8080 : HTTP CRL/OCSP public
+  # 3. EJBCA CE 8.x — Moteur PKI
   # ---------------------------------------------------------
   pki-ca:
     image: ${EJBCA_IMAGE}
@@ -146,7 +143,7 @@ services:
       - "traefik.http.services.crl.loadbalancer.server.port=80"
 
   # ---------------------------------------------------------
-  # 5. REDIS — Cache OCSP + CRL (réponses signées)
+  # 5. REDIS — Cache OCSP + CRL
   # ---------------------------------------------------------
   cache:
     image: redis:7-alpine
@@ -174,8 +171,9 @@ services:
           memory: 320M
 
   # ---------------------------------------------------------
-  # 6. VAULT — Gestion des secrets et credentials PKI
-  # Mode dev local uniquement — prod : Vault HA cluster
+  # 6. VAULT — Gestion des secrets (mode dev local)
+  # CORRECTIF : healthcheck via curl sur l'API HTTP
+  # Le fichier vault.hcl est incompatible avec -dev, non monté
   # ---------------------------------------------------------
   vault:
     image: hashicorp/vault:1.16
@@ -186,21 +184,25 @@ services:
     environment:
       VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
       VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://127.0.0.1:8200
+    # -dev : démarre non-scellé, stockage en mémoire, pas besoin de vault.hcl
     command: server -dev
     volumes:
-      - vault-data:/vault/data
       - vault-logs:/vault/logs
-      - ./vault/config:/vault/config:ro
       - ./vault/policies:/vault/policies:ro
+      # vault.hcl NOT mounted — incompatible avec le mode -dev
+    ports:
+      - "8200:8200"
     networks:
       - vault-net
       - pki-internal
     healthcheck:
-      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
-      interval: 15s
+      # vault status retourne exit 2 quand scellé — utiliser curl à la place
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 10
+      start_period: 15s
     deploy:
       resources:
         limits:
@@ -233,7 +235,7 @@ services:
       VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID}
       CRL_BASE_URL: http://crl.${DOMAIN}/crl
       OCSP_URL: http://pki-ca:8009/ejbca/publicweb/status/ocsp
-      CA_VERIFY_SSL: "false"   # true en production avec vrai cert
+      CA_VERIFY_SSL: "false"
     volumes:
       - crl-files:/app/crl-cache:ro
     ports:
@@ -260,7 +262,6 @@ services:
 
   # ---------------------------------------------------------
   # 8. TRAEFIK v3 — Reverse Proxy / Edge Gateway
-  # Dashboard : http://localhost:${TRAEFIK_DASHBOARD_PORT}
   # ---------------------------------------------------------
   gateway:
     image: traefik:v3.0
