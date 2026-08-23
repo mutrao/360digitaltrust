@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://cache:6379/0"
 
     # Vault
-    VAULT_ADDR: str = "http://vault:8200"
+    VAULT_ADDR: str = "http://vault:8210"
     VAULT_TOKEN: str = "root-dev-token-2026"
     VAULT_MOUNT_PATH: str = "secret"
 
