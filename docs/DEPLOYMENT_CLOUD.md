@@ -7,7 +7,9 @@
 ## Réponse directe
 
 **Oui, c'est possible avec des contraintes à connaître.**  
-La solution complète (EJBCA + PostgreSQL + Redis + Vault + Signature API) nécessite **~3-4 Go de RAM et 4 vCPU**. Les offres "fully free" sont limitées, mais il existe des stratégies viables.
+La solution complète (EJBCA + PostgreSQL + Redis + Signature API + Frontend) nécessite **~3-4 Go de RAM et 4 vCPU**. Les offres "fully free" sont limitées, mais il existe des stratégies viables.
+
+Le **Frontend** (Nginx + SPA) est très léger (<50 Mo RAM) et peut être hébergé gratuitement sur n'importe quelle plateforme, voire sur un CDN statique.
 
 ---
 
@@ -152,21 +154,54 @@ services:
 ```
                         Internet
                            |
-              ┌──────────────────┐
-              │  Fly.io (gratuit)    │
-              │  Signature API x3   │  <- scale horizontal
-              │  (PAdES/XAdES/CAdES)│
-              └────────┬─────────┘
-                       |
-              ┌────────┴─────────┐
-              │  Oracle Cloud Free  │
-              │  (4 vCPU / 24Go RAM)│
-              │  EJBCA + PostgreSQL  │
-              │  Redis + Vault       │
-              └──────────────────┘
+              ┌────────────────────────┐
+              │  GitHub Pages / Netlify │
+              │  Frontend SPA (Nginx)   │  <- statique, CDN mondial, gratuit
+              │  (dashboard, sign, wf)  │
+              └───────────┬────────────┘
+                          |
+              ┌───────────┴────────────┐
+              │  Fly.io (gratuit)       │
+              │  Signature API x3       │  <- scale horizontal
+              │  (hash sign / workflows)│
+              └───────────┬────────────┘
+                          |
+              ┌───────────┴────────────┐
+              │  Oracle Cloud Free Tier │
+              │  (4 vCPU / 24 Go RAM)   │
+              │  EJBCA + PostgreSQL      │
+              │  Redis + Vault           │
+              └────────────────────────┘
 ```
 
 **Coût total : 0 €**
+
+### Déployer le Frontend sur GitHub Pages (gratuit, sans serveur)
+
+Le frontend est une SPA statique — il peut être hébergé sur GitHub Pages en changeant l'URL de l'API :
+
+```bash
+# Dans frontend/index.html, modifier la constante API :
+# const API = 'https://votre-signature-api.fly.dev';   # pointer vers Fly.io
+# au lieu de : const API = '/api';
+
+# Activer GitHub Pages sur le repo :
+# Settings → Pages → Source: branche main → dossier /frontend
+```
+
+---
+
+## Configuration CORS pour le déploiement cloud
+
+Quand Frontend et Signature API sont sur des domaines différents, activer CORS dans la Signature API :
+
+```bash
+# Dans .env (sur Oracle Cloud)
+FRONTEND_ORIGINS=https://mutrao.github.io,https://votre-frontend.netlify.app
+
+# La Signature API lit CORS_ORIGINS depuis l'env et configure FastAPI automatiquement
+# (déjà configuré avec allow_origins=["*"] pour le dev — restreindre en production)
+```
 
 ---
 
@@ -216,6 +251,8 @@ EOF
 | Pas de SLA garanti | Disponibilité non garantie | OK pour les tests, pas pour la production |
 | RAM limitée sur Fly.io | EJBCA ne peut pas s'y déployer seul | Architecture hybride (voir ci-dessus) |
 | Certificats SSL auto-signés | Browsers bloquent | Let's Encrypt via Traefik (gratuit) |
+| CORS requis | Frontend sur CDN ≠ domaine API | Configurer CORS_ORIGINS dans .env |
+| Hash-only signing | Clé privée reste côté serveur | Sécurité renforcée — document jamais en transit |
 
 ---
 
