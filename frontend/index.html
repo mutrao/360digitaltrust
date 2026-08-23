@@ -1138,6 +1138,28 @@ textarea.form-control { resize: vertical; min-height: 72px; }
                 <option value="P-521">P-521 (secp521r1)</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">Stockage de la clé privée</label>
+              <div style="display:flex;gap:8px">
+                <label style="flex:1;cursor:pointer">
+                  <input type="radio" name="k-storage" value="soft" checked style="display:none">
+                  <div class="k-storage-opt" data-val="soft" onclick="selectStorage('soft')" style="border:2px solid var(--cobalt);border-radius:var(--radius-sm);padding:10px 12px;background:var(--sky);text-align:center">
+                    <div style="font-size:13px;font-weight:700;color:var(--cobalt)">Soft (local)</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:2px">Fichier /tmp/pki-keys</div>
+                  </div>
+                </label>
+                <label style="flex:1;cursor:pointer">
+                  <input type="radio" name="k-storage" value="vault" style="display:none">
+                  <div class="k-storage-opt" data-val="vault" onclick="selectStorage('vault')" style="border:2px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;background:var(--ground);text-align:center">
+                    <div style="font-size:13px;font-weight:700;color:var(--ink)">Vault</div>
+                    <div style="font-size:11px;color:var(--muted);margin-top:2px">HashiCorp Vault</div>
+                  </div>
+                </label>
+              </div>
+              <div id="k-vault-warn" style="display:none;margin-top:8px;padding:8px 12px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:var(--radius-sm);font-size:12px;color:#92400E">
+                ⚠ Vault doit être démarré : <code style="font-family:'JetBrains Mono',monospace">docker compose --profile vault up -d vault</code>
+              </div>
+            </div>
             <button class="btn btn-primary" id="k-btn" onclick="genKey()" style="width:100%">Générer</button>
             <div id="k-result" style="margin-top:14px"></div>
           </div>
@@ -1670,6 +1692,17 @@ document.getElementById('k-algo').addEventListener('change', function() {
   document.getElementById('k-ec-group').style.display  = this.value === 'EC'  ? '' : 'none';
 });
 
+function selectStorage(val) {
+  document.querySelector(`input[name="k-storage"][value="${val}"]`).checked = true;
+  document.querySelectorAll('.k-storage-opt').forEach(el => {
+    const active = el.dataset.val === val;
+    el.style.border = active ? '2px solid var(--cobalt)' : '2px solid var(--border)';
+    el.style.background = active ? 'var(--sky)' : 'var(--ground)';
+    el.querySelector('div').style.color = active ? 'var(--cobalt)' : 'var(--ink)';
+  });
+  document.getElementById('k-vault-warn').style.display = val === 'vault' ? '' : 'none';
+}
+
 async function genKey() {
   const btn = document.getElementById('k-btn');
   btn.innerHTML = '<span class="spinner"></span> Génération…';
@@ -1677,7 +1710,8 @@ async function genKey() {
   try {
     const algo = document.getElementById('k-algo').value;
     const cn = document.getElementById('k-cn').value.trim() || 'Utilisateur 360DT';
-    const body = { algorithm: algo, common_name: cn, store_in_vault: false };
+    const useVault = document.querySelector('input[name="k-storage"]:checked').value === 'vault';
+    const body = { algorithm: algo, common_name: cn, store_in_vault: useVault };
     if (algo === 'RSA') body.key_size = parseInt(document.getElementById('k-size').value);
     else body.curve = document.getElementById('k-curve').value;
     const res = await apiFetch('/v1/keys/generate', {method:'POST', body:JSON.stringify(body)});
