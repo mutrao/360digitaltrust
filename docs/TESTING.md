@@ -21,7 +21,7 @@ curl -sk https://localhost:8443/ejbca/publicweb/healthcheck/ejbcahealth
 # ALLOK
 
 # Vault (si profil vault activé)
-curl http://localhost:8200/v1/sys/health | python3 -m json.tool
+curl http://localhost:8210/v1/sys/health | python3 -m json.tool
 ```
 
 ```bash

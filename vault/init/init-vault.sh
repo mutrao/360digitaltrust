@@ -2,7 +2,7 @@
 # Initialisation Vault — création des politiques et du moteur KV v2
 set -euo pipefail
 
-VAULT_ADDR="http://vault:8200"
+VAULT_ADDR="http://vault:8210"
 VAULT_TOKEN="${VAULT_DEV_ROOT_TOKEN_ID:-root-dev-token-2026}"
 
 export VAULT_ADDR VAULT_TOKEN

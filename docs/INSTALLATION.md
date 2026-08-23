@@ -279,7 +279,7 @@ Interfaces disponibles :
 | `8888` | Traefik | Dashboard |
 | `3000` | Grafana | Monitoring (profil monitoring) |
 | `9090` | Prometheus | Métriques (profil monitoring) |
-| `8200` | Vault | Secrets (profil vault) |
+| `8210` | Vault | Secrets (profil vault) |
 
 ---
 
