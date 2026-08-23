@@ -131,17 +131,59 @@ Interfaces disponibles :
 
 ---
 
+## Étape 7 — Interface Web Frontend
+
+Le frontend démarre automatiquement avec `docker compose up -d`.
+
+```bash
+# Vérifier que le frontend est démarré
+docker compose ps pki-frontend
+
+# Accéder à l'interface
+open http://localhost:3001
+```
+
+### Fonctionnalités de l'interface
+
+| Section | Description |
+|---------|-------------|
+| **Tableau de bord** | Stats en temps réel, activité récente, actions rapides |
+| **Signer un document** | Hash calculé localement (Web Crypto API) — le fichier ne quitte jamais le navigateur |
+| **Vérifier** | Recherche d'une signature par ID |
+| **Workflows** | Création et suivi des workflows multi-signataires (séquentiel/parallèle/mixte) |
+| **Utilisateurs** | Gestion des signataires, admins, auditeurs |
+| **Audit & Logs** | Historique complet, filtres, export CSV |
+| **Certificats** | Visualisation de la chaîne PKI Root→Sub-CA |
+| **Clés** | Génération RSA/ECDSA, stockage local ou Vault |
+
+### Architecture privacy-first (hash-only signing)
+
+```
+Navigateur                          Serveur
+────────────────────────────────    ──────────────────────────
+1. Charge le fichier PDF            
+2. Calcule SHA-256 (Web Crypto)     
+3. Envoie uniquement le hash ──────► 4. Signe le hash (clé privée)
+                              ◄────── 5. Retourne signature + certificat
+6. Stocke la signature localement   6. Enregistre dans l'audit trail
+```
+
+Le fichier ne transite jamais sur le réseau — seuls 32 octets (le hash) sont envoyés.
+
+---
+
 ## Ports exposés (résumé)
 
 | Port | Service | Description |
 |---|---|---|
+| `3001` | Frontend | Interface web SPA |
 | `8080` | Signature API | REST API de signature |
 | `8443` | EJBCA | Interface admin + REST API PKI |
 | `8009` | EJBCA HTTP | CRL + OCSP non-TLS |
 | `8888` | Traefik | Dashboard |
 | `3000` | Grafana | Monitoring |
 | `9090` | Prometheus | Métriques |
-| `8200` | Vault | Interface secrets |
+| `8200` | Vault | Interface secrets (profil vault) |
 
 ---
 
@@ -157,14 +199,18 @@ Interfaces disponibles :
 │   ├── ejbca/init/              # Scripts + profils de certificats
 │   ├── softhsm/                 # Image SoftHSM2
 │   └── postgres/                # Init SQL
+├── frontend/
+│   ├── Dockerfile                # Nginx Alpine
+│   ├── nginx.conf                # Proxy vers signature-api
+│   └── index.html                # SPA complète (dashboard, sign, workflows, audit, users)
 ├── signature-api/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── app/
-│       ├── main.py               # Entrée FastAPI
+│       ├── main.py               # Entrée FastAPI v2.0.0
 │       ├── config.py
-│       ├── routers/              # keys, certificates, sign_pdf, sign_xml, sign_cms, ocsp, tsa
-│       └── services/             # ejbca, cache, vault, key_manager
+│       ├── routers/              # keys, sign_hash, workflows, audit, users, certificates, ocsp, tsa
+│       └── services/             # ejbca, cache, vault, key_manager, workflow_store, audit_store, user_store
 ├── gateway/
 │   ├── nginx/crl.conf
 │   └── traefik/dynamic/
