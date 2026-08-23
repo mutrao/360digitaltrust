@@ -16,14 +16,15 @@ class VaultService:
         if not settings.VAULT_ADDR:
             log.info("vault.disabled", reason="VAULT_ADDR not set")
             return
-        _vault = hvac.Client(
-            url=settings.VAULT_ADDR,
-            token=settings.VAULT_TOKEN,
-        )
-        if _vault.is_authenticated():
-            log.info("vault.connected", addr=settings.VAULT_ADDR)
-        else:
-            log.warning("vault.not_authenticated")
+        try:
+            client = hvac.Client(url=settings.VAULT_ADDR, token=settings.VAULT_TOKEN)
+            if client.is_authenticated():
+                _vault = client
+                log.info("vault.connected", addr=settings.VAULT_ADDR)
+            else:
+                log.warning("vault.not_authenticated", addr=settings.VAULT_ADDR)
+        except Exception as e:
+            log.warning("vault.unreachable", addr=settings.VAULT_ADDR, error=str(e))
 
     @classmethod
     def is_available(cls) -> bool:

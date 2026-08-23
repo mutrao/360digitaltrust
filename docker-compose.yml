@@ -266,6 +266,7 @@ services:
     volumes:
       - vault-data:/vault/data
       - ./vault/policies:/vault/policies:ro
+      - ./vault/init:/vault/init:ro
     ports:
       - "8210:8210"
     networks:
