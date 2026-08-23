@@ -1118,6 +1118,10 @@ textarea.form-control { resize: vertical; min-height: 72px; }
                 <option value="EC">ECDSA</option>
               </select>
             </div>
+            <div class="form-group">
+              <label class="form-label">Nom commun (Common Name)</label>
+              <input class="form-control" id="k-cn" type="text" placeholder="ex: Alice Martin" value="">
+            </div>
             <div id="k-rsa-group" class="form-group">
               <label class="form-label">Taille de clé</label>
               <select class="form-control" id="k-size">
@@ -1672,7 +1676,8 @@ async function genKey() {
   btn.disabled = true;
   try {
     const algo = document.getElementById('k-algo').value;
-    const body = { algorithm: algo };
+    const cn = document.getElementById('k-cn').value.trim() || 'Utilisateur 360DT';
+    const body = { algorithm: algo, common_name: cn, store_in_vault: false };
     if (algo === 'RSA') body.key_size = parseInt(document.getElementById('k-size').value);
     else body.curve = document.getElementById('k-curve').value;
     const res = await apiFetch('/v1/keys/generate', {method:'POST', body:JSON.stringify(body)});
