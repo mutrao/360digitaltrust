@@ -50,6 +50,8 @@ async def generate_key(req: GenerateKeyRequest):
     if req.store_in_vault:
         try:
             KeyManager.store_key_in_vault(key_id, private_key)
+        except RuntimeError as e:
+            raise HTTPException(status_code=503, detail=str(e))
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Vault inaccessible : {e}")
 
