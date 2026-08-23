@@ -1,179 +1,214 @@
 # Guide d'installation locale — 360DigitalTrust PKI
 
-## Prérequis
-
-| Outil | Version minimale | Vérification |
-|---|---|---|
-| Docker | 24.0+ | `docker --version` |
-| Docker Compose | 2.20+ | `docker compose version` |
-| RAM disponible | 6 Go minimum (8 Go recommandé) | `free -h` |
-| Disk libre | 10 Go | `df -h` |
-| CPU | 4 vCPU recommandés | `nproc` |
+> Guide mis à jour après tests réels. Tous les problèmes rencontrés sont documentés.
 
 ---
 
-## Étape 1 — Cloner le projet
+## Prérequis
+
+| Outil | Version | Vérification |
+|---|---|---|
+| Docker Desktop | 24.0+ | `docker --version` |
+| Docker Compose | 2.20+ | `docker compose version` |
+| RAM allouée à Docker | **6 Go minimum** | Docker Desktop → Settings → Resources |
+| Espace disque | 10 Go | `df -h` |
+
+> **Important Mac** : aller dans Docker Desktop → Settings → Resources → Memory et mettre **au moins 6144 Mo** avant de commencer. Sinon Vault et EJBCA seront tues par l'OOM killer.
+
+---
+
+## Étape 0 — Récupérer le projet
 
 ```bash
 git clone https://github.com/mutrao/360digitaltrust.git
 cd 360digitaltrust
-git checkout claude/gifted-tesla-988nl3
 ```
+
+> Si vous avez déjà cloné le projet et voulez repartir de zéro, consultez **[docs/RESET.md](RESET.md)** d'abord.
 
 ---
 
-## Étape 2 — Configurer l'environnement
+## Étape 1 — Configurer l'environnement
 
 ```bash
 cp .env.example .env
 ```
 
-Éditer `.env` et **changer tous les mots de passe** :
+Le fichier `.env` contient des mots de passe par défaut fonctionnels pour le développement local.  
+Les **trois valeurs suivantes doivent être identiques** :
 
-```bash
-# Générer des mots de passe sécurisés
-openssl rand -base64 32   # pour EJBCA_ADMIN_PASSWORD
-openssl rand -base64 32   # pour POSTGRES_PASSWORD
-openssl rand -base64 32   # pour CA_TOKEN_PIN
-openssl rand -base64 32   # pour REDIS_PASSWORD
+```env
+EJBCA_DB_PASSWORD=changeme_db_2026!
+POSTGRES_PASSWORD=changeme_db_2026!   # ← même valeur que EJBCA_DB_PASSWORD
+POSTGRES_USER=ejbca
+EJBCA_DB_USER=ejbca                   # ← même valeur que POSTGRES_USER
 ```
 
 ---
 
-## Étape 3 — Démarrer l'infrastructure de base
-
-### 3.1 Démarrage de la PKI (ordre important)
+## Étape 2 — Démarrer la base de données et le HSM
 
 ```bash
-# Étape 1 : Base de données + HSM
 docker compose up -d pki-db pki-hsm
-
-# Attendre que PostgreSQL soit prêt (~15s)
-docker compose logs -f pki-db | grep "ready to accept"
 ```
 
-```bash
-# Étape 2 : Démarrer EJBCA
-# ⚠️ Premier démarrage : 3-5 minutes (déploiement WildFly)
-docker compose up -d pki-ca
+Attendre que PostgreSQL soit prêt (~20 secondes) :
 
-# Surveiller le démarrage
+```bash
+docker compose logs pki-db | grep "ready to accept"
+# Attendu : database system is ready to accept connections
+```
+
+---
+
+## Étape 3 — Démarrer EJBCA
+
+```bash
+docker compose up -d pki-ca cache
+```
+
+EJBCA prend **3 à 5 minutes** au premier démarrage (déploiement WildFly + initialisation).  
+Suivre les logs :
+
+```bash
 docker compose logs -f pki-ca
-# Attendre le message : "EJBCA started successfully"
 ```
 
+Le démarrage est terminé quand vous voyez :
+
+```
+A fresh installation was detected and a ManagementCA was created
+URL: https://<id>:443/ejbca/adminweb/
+```
+
+Vérifier le health check :
+
 ```bash
-# Étape 3 : Démarrer tous les services
+curl -sk https://localhost:8443/ejbca/publicweb/healthcheck/ejbcahealth
+# Réponse attendue : ALLOK
+```
+
+---
+
+## Étape 4 — Activer l'API REST EJBCA
+
+L'API REST est **désactivée par défaut** dans EJBCA CE. Il faut l'activer manuellement.
+
+### Option A — Via l'interface web (recommandé)
+
+1. Ouvrir **https://localhost:8443/ejbca/adminweb/**
+2. Accepter l'avertissement SSL du navigateur
+3. Menu gauche : **System Configuration** → **Protocol Configuration**
+4. Activer **REST Certificate Management** → cliquer **Enable**
+5. Activer **REST CA Management** → cliquer **Enable**
+6. Cliquer **Save**
+
+### Option B — Via CLI dans le container
+
+```bash
+docker compose exec pki-ca /opt/ejbca/bin/ejbca.sh config protocols \
+  --enable --protocol REST
+```
+
+### Vérification
+
+```bash
+curl -sk https://localhost:8443/ejbca/ejbca-rest-api/v1/ca | python3 -m json.tool
+# Attendu : liste JSON avec ManagementCA
+```
+
+---
+
+## Étape 5 — Initialiser la hiérarchie PKI
+
+```bash
+docker compose exec pki-ca bash /opt/ejbca/init/01-init-ca.sh
+```
+
+Ce script crée :
+- `360DT-Root-CA` — RSA 4096, 20 ans
+- `360DT-Sub-Signature-CA` — RSA 4096, 10 ans
+- `360DT-Sub-TSA-CA` — RSA 4096, 10 ans
+- `360DT-Sub-OCSP-CA` — RSA 2048, 5 ans
+
+Vérifier :
+
+```bash
+curl -sk https://localhost:8443/ejbca/ejbca-rest-api/v1/ca | python3 -m json.tool
+# Attendu : 5 CA (ManagementCA + 4 ci-dessus)
+```
+
+---
+
+## Étape 6 — Démarrer les services restants
+
+```bash
 docker compose up -d
 ```
 
-### 3.2 Vérifier que tout est actif
+Vérifier l'état de tous les services :
 
 ```bash
 docker compose ps
 ```
 
-Sortie attendue (tous `healthy` ou `running`) :
+Sortie attendue (tous `running` ou `healthy`) :
+
 ```
-NAME              STATUS          PORTS
-pki-db            healthy         5432/tcp
+NAME              STATUS
+pki-db            healthy
 pki-hsm           running
-pki-ca            healthy         0.0.0.0:8443->8443/tcp
-crl-publisher     running         80/tcp
-pki-cache         healthy         6379/tcp
-vault             healthy         8200/tcp
-signature-api     healthy         0.0.0.0:8080->8000/tcp
-pki-gateway       running         0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
+pki-ca            healthy
+crl-publisher     running
+pki-cache         healthy
+signature-api     healthy
+pki-gateway       running
 ```
+
+> **Note** : Vault n'est PAS démarré par défaut (problèmes mémoire sur Mac).
+> Pour l'activer : `docker compose --profile vault up -d vault`
 
 ---
 
-## Étape 4 — Initialiser la hiérarchie PKI
+## Étape 7 — Tester la Signature API
 
 ```bash
-# Exécuter le script d'initialisation des CA
-docker compose exec pki-ca bash /opt/ejbca/init/01-init-ca.sh
+# Health check
+curl http://localhost:8080/health
+# {"status":"ok","service":"signature-api","version":"1.0.0"}
+
+# Swagger UI
+open http://localhost:8080/docs
 ```
 
-Ce script crée :
-- `360DT-Root-CA` — RSA 4096, 20 ans (ancre de confiance)
-- `360DT-Sub-Signature-CA` — RSA 4096, 10 ans (certificats signataires)
-- `360DT-Sub-TSA-CA` — RSA 4096, 10 ans (horodatage)
-- `360DT-Sub-OCSP-CA` — RSA 2048, 5 ans (répondeur OCSP)
+---
 
-### Vérifier les CA créées
+## Problèmes fréquents
+
+### PostgreSQL : password authentication failed
 
 ```bash
-curl -sk https://localhost:8443/ejbca/ejbca-rest-api/v1/ca | python3 -m json.tool
+# Les mots de passe EJBCA_DB_PASSWORD et POSTGRES_PASSWORD doivent être identiques dans .env
+# Solution : réinitialiser les volumes
+docker compose down -v
+docker compose up -d pki-db pki-hsm
 ```
 
----
+### Vault : address already in use
 
-## Étape 5 — Initialiser Vault
-
+Vault est désactivé par défaut. Si vous l'avez activé et qu'il bloque :
 ```bash
-# Exécuter le script d'init Vault
-docker compose exec vault sh /vault/init/init-vault.sh
+docker kill pki-vault && docker rm pki-vault
 ```
 
----
+### EJBCA REST : This service has been disabled
 
-## Étape 6 — Stack monitoring (optionnelle)
+Faire l'étape 4 (activer l'API REST via adminweb ou CLI).
 
-```bash
-docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d
-```
+### Container tué (exit code 137)
 
-Interfaces disponibles :
-- **Grafana** : http://localhost:3000 (admin / mot de passe dans `.env`)
-- **Prometheus** : http://localhost:9090
-- **Traefik Dashboard** : http://localhost:8888
+Manque de mémoire. Aller dans Docker Desktop → Settings → Resources → Memory → augmenter à 6+ Go.
 
----
+### Warning : attribute `version` is obsolete
 
-## Ports exposés (résumé)
-
-| Port | Service | Description |
-|---|---|---|
-| `8080` | Signature API | REST API de signature |
-| `8443` | EJBCA | Interface admin + REST API PKI |
-| `8009` | EJBCA HTTP | CRL + OCSP non-TLS |
-| `8888` | Traefik | Dashboard |
-| `3000` | Grafana | Monitoring |
-| `9090` | Prometheus | Métriques |
-| `8200` | Vault | Interface secrets |
-
----
-
-## Structure des répertoires
-
-```
-360digitaltrust/
-├── docker-compose.yml          # Stack principale
-├── docker-compose.monitoring.yml
-├── .env.example
-├── pki/
-│   ├── ejbca/conf/              # Configuration EJBCA
-│   ├── ejbca/init/              # Scripts + profils de certificats
-│   ├── softhsm/                 # Image SoftHSM2
-│   └── postgres/                # Init SQL
-├── signature-api/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   └── app/
-│       ├── main.py               # Entrée FastAPI
-│       ├── config.py
-│       ├── routers/              # keys, certificates, sign_pdf, sign_xml, sign_cms, ocsp, tsa
-│       └── services/             # ejbca, cache, vault, key_manager
-├── gateway/
-│   ├── nginx/crl.conf
-│   └── traefik/dynamic/
-├── vault/
-│   ├── config/vault.hcl
-│   ├── policies/
-│   └── init/init-vault.sh
-└── monitoring/
-    ├── prometheus/
-    ├── alertmanager/
-    └── grafana/
-```
+Avertissement sans impact, ignorer. Le fichier `docker-compose.yml` ne contient plus l'attribut `version`.
