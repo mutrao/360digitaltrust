@@ -1,437 +1,911 @@
-<!DOCTYPE html>
-<html lang="fr" data-theme="dark">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>360 Digital Trust — PKI Signature Platform</title>
+<title>360 Digital Trust</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
 <style>
-  :root {
-    --bg: #0f1117;
-    --bg2: #1a1d27;
-    --bg3: #252836;
-    --border: #2e3148;
-    --accent: #6366f1;
-    --accent2: #818cf8;
-    --success: #22c55e;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --text: #e2e8f0;
-    --text2: #94a3b8;
-    --text3: #64748b;
-    --radius: 10px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+/* ─── Tokens ─────────────────────────────────────────── */
+:root {
+  --surface:    #FFFFFF;
+  --ground:     #F4F7FB;
+  --ground2:    #EDF1F7;
+  --border:     #DDE3EE;
+  --border2:    #C8D2E2;
+  --ink:        #0A1F3D;
+  --ink2:       #3D526B;
+  --muted:      #6B7E99;
+  --accent:     #1560BD;
+  --accent-lt:  #EAF1FB;
+  --accent-dk:  #0D4A99;
+  --success:    #0A6E45;
+  --success-lt: #E6F4EE;
+  --warn:       #92580A;
+  --warn-lt:    #FEF3E2;
+  --danger:     #B52A2A;
+  --danger-lt:  #FCEAEA;
+  --radius:     4px;
+  --radius-lg:  8px;
+  --shadow:     0 1px 4px rgba(10,31,61,.07);
+  --shadow-md:  0 4px 16px rgba(10,31,61,.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface:    #111827;
+    --ground:     #1A2535;
+    --ground2:    #222F42;
+    --border:     #2A3A52;
+    --border2:    #374D6A;
+    --ink:        #E8EEF7;
+    --ink2:       #A8B8D0;
+    --muted:      #6B8099;
+    --accent:     #4D8DE0;
+    --accent-lt:  #162540;
+    --accent-dk:  #6AA3F0;
+    --success:    #34C882;
+    --success-lt: #0D2E1F;
+    --warn:       #F0A030;
+    --warn-lt:    #2E1E06;
+    --danger:     #E05555;
+    --danger-lt:  #2E0D0D;
+    --shadow:     0 1px 4px rgba(0,0,0,.3);
+    --shadow-md:  0 4px 16px rgba(0,0,0,.4);
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+}
+:root[data-theme="dark"] {
+  --surface:    #111827;
+  --ground:     #1A2535;
+  --ground2:    #222F42;
+  --border:     #2A3A52;
+  --border2:    #374D6A;
+  --ink:        #E8EEF7;
+  --ink2:       #A8B8D0;
+  --muted:      #6B8099;
+  --accent:     #4D8DE0;
+  --accent-lt:  #162540;
+  --accent-dk:  #6AA3F0;
+  --success:    #34C882;
+  --success-lt: #0D2E1F;
+  --warn:       #F0A030;
+  --warn-lt:    #2E1E06;
+  --danger:     #E05555;
+  --danger-lt:  #2E0D0D;
+}
 
-  /* Layout */
-  .app { display: flex; min-height: 100vh; }
+/* ─── Reset ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--surface);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+}
 
-  /* Sidebar */
-  .sidebar {
-    width: 240px; background: var(--bg2); border-right: 1px solid var(--border);
-    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
-  }
-  .sidebar-logo {
-    padding: 20px 16px; border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; gap: 10px;
-  }
-  .sidebar-logo .logo-icon {
-    width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), #8b5cf6);
-    border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px;
-  }
-  .sidebar-logo .logo-text { font-size: 14px; font-weight: 700; line-height: 1.2; }
-  .sidebar-logo .logo-sub { font-size: 11px; color: var(--text2); }
-  .nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
-  .nav-section { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--text3); padding: 12px 8px 4px; }
-  .nav-item {
-    display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 7px;
-    cursor: pointer; font-size: 14px; color: var(--text2); transition: all .15s; margin-bottom: 2px;
-  }
-  .nav-item:hover { background: var(--bg3); color: var(--text); }
-  .nav-item.active { background: rgba(99,102,241,.15); color: var(--accent2); font-weight: 600; }
-  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
-  .nav-badge {
-    margin-left: auto; background: var(--accent); color: #fff; font-size: 10px;
-    padding: 1px 6px; border-radius: 10px; font-weight: 700;
-  }
-  .sidebar-bottom { padding: 12px 8px; border-top: 1px solid var(--border); }
-  .status-pill {
-    display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 7px;
-    background: var(--bg3); font-size: 12px; color: var(--text2);
-  }
-  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+/* ─── Sidebar ────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0;
+  height: 100vh;
+  z-index: 100;
+}
 
-  /* Main */
-  .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
-  .topbar {
-    height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border);
-    display: flex; align-items: center; padding: 0 24px; gap: 16px; position: sticky; top: 0; z-index: 50;
-  }
-  .topbar-title { font-size: 16px; font-weight: 600; }
-  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-  .btn {
-    display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
-    border-radius: 7px; border: none; cursor: pointer; font-size: 13px; font-weight: 500;
-    transition: all .15s; text-decoration: none;
-  }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent2); }
-  .btn-outline { background: transparent; color: var(--text2); border: 1px solid var(--border); }
-  .btn-outline:hover { background: var(--bg3); color: var(--text); }
-  .btn-danger { background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid rgba(239,68,68,.3); }
-  .btn-danger:hover { background: rgba(239,68,68,.25); }
-  .btn-success { background: rgba(34,197,94,.15); color: var(--success); border: 1px solid rgba(34,197,94,.3); }
-  .btn-success:hover { background: rgba(34,197,94,.25); }
-  .btn-sm { padding: 4px 10px; font-size: 12px; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
+.brand {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-mark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.brand-icon {
+  width: 30px; height: 30px;
+  background: var(--ink);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.brand-icon svg { display: block; }
+.brand-name {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 15px;
+  color: var(--ink);
+  line-height: 1.2;
+  letter-spacing: -.01em;
+}
+.brand-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding-left: 40px;
+}
 
-  .content { padding: 24px; flex: 1; }
-  .page { display: none; }
-  .page.active { display: block; }
+.nav {
+  flex: 1;
+  padding: 16px 10px;
+  overflow-y: auto;
+}
+.nav-section {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 10px 10px 4px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink2);
+  font-weight: 400;
+  transition: background .12s, color .12s;
+  margin-bottom: 1px;
+  user-select: none;
+}
+.nav-item:hover { background: var(--ground); color: var(--ink); }
+.nav-item.active {
+  background: var(--accent-lt);
+  color: var(--accent);
+  font-weight: 500;
+}
+.nav-item .ni-icon {
+  width: 16px; height: 16px;
+  opacity: .7;
+  flex-shrink: 0;
+}
+.nav-item.active .ni-icon { opacity: 1; }
+.nav-count {
+  margin-left: auto;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-lt);
+  padding: 1px 6px;
+  border-radius: 10px;
+}
 
-  /* Cards */
-  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); }
-  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
-  .card-header h3 { font-size: 14px; font-weight: 600; flex: 1; }
-  .card-body { padding: 20px; }
+.sidebar-foot {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+.api-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+}
+.status-dot.offline { background: var(--danger); }
+.status-dot.checking {
+  background: var(--warn);
+  animation: blink 1.2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.35} }
+.theme-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color .12s;
+}
+.theme-btn:hover { color: var(--ink); }
 
-  /* Grid */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
-  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-  @media(max-width:1100px){.grid-4{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr}}
-  @media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0}}
+/* ─── Main ───────────────────────────────────────────── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
-  /* Stat card */
-  .stat-card { padding: 20px; }
-  .stat-label { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
-  .stat-value { font-size: 28px; font-weight: 700; }
-  .stat-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
-  .stat-icon { font-size: 24px; margin-bottom: 10px; }
+.topbar {
+  height: 52px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topbar-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
 
-  /* Form */
-  .form-group { margin-bottom: 16px; }
-  .form-label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 6px; font-weight: 500; }
-  .form-control {
-    width: 100%; padding: 9px 12px; background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 7px; color: var(--text); font-size: 13px; outline: none; transition: border-color .15s;
-  }
-  .form-control:focus { border-color: var(--accent); }
-  select.form-control { cursor: pointer; }
-  textarea.form-control { resize: vertical; min-height: 80px; }
+/* ─── Content ────────────────────────────────────────── */
+.content { padding: 28px; flex: 1; }
+.page { display: none; }
+.page.active { display: block; }
 
-  /* Table */
-  .table-wrap { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  th { padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); border-bottom: 1px solid var(--border); }
-  td { padding: 11px 14px; border-bottom: 1px solid rgba(46,49,72,.5); }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,.02); }
+/* ─── Buttons ────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  border: none; cursor: pointer;
+  font-size: 12.5px; font-weight: 500;
+  font-family: inherit;
+  transition: all .13s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-dk); }
+.btn-primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn-outline {
+  background: transparent;
+  color: var(--ink2);
+  border: 1px solid var(--border2);
+}
+.btn-outline:hover { background: var(--ground); color: var(--ink); }
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+}
+.btn-ghost:hover { color: var(--ink); background: var(--ground); }
+.btn-danger {
+  background: var(--danger-lt);
+  color: var(--danger);
+  border: 1px solid transparent;
+}
+.btn-danger:hover { border-color: var(--danger); }
+.btn-sm { padding: 4px 10px; font-size: 11.5px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; }
+.spinner {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .55s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Badge */
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-  .badge-success { background: rgba(34,197,94,.15); color: var(--success); }
-  .badge-warning { background: rgba(245,158,11,.15); color: var(--warning); }
-  .badge-danger  { background: rgba(239,68,68,.15); color: var(--danger); }
-  .badge-info    { background: rgba(99,102,241,.15); color: var(--accent2); }
-  .badge-neutral { background: var(--bg3); color: var(--text2); }
+/* ─── Cards ──────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-header h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  flex: 1;
+}
+.card-body { padding: 20px; }
+.card-label {
+  font-family: 'DM Serif Display', serif;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
 
-  /* Alert */
-  .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start; }
-  .alert-success { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: var(--success); }
-  .alert-danger  { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: var(--danger); }
-  .alert-info    { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.3); color: var(--accent2); }
+/* ─── Grid ───────────────────────────────────────────── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+@media (max-width: 1100px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 720px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+}
 
-  /* Drop zone */
-  .drop-zone {
-    border: 2px dashed var(--border); border-radius: var(--radius); padding: 40px;
-    text-align: center; cursor: pointer; transition: all .2s; background: var(--bg3);
-  }
-  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: rgba(99,102,241,.05); }
-  .drop-icon { font-size: 40px; margin-bottom: 12px; }
-  .drop-text { font-size: 14px; color: var(--text2); }
-  .drop-sub { font-size: 12px; color: var(--text3); margin-top: 4px; }
+/* ─── Stat cards ─────────────────────────────────────── */
+.stat-card {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.stat-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.stat-value {
+  font-family: 'DM Serif Display', serif;
+  font-size: 30px;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.stat-sub { font-size: 11.5px; color: var(--muted); }
+.stat-accent { color: var(--accent); }
 
-  /* Progress */
-  .progress { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
-  .progress-bar { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); border-radius: 3px; transition: width .3s; }
+/* ─── Badges ─────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 500;
+}
+.badge-success { background: var(--success-lt); color: var(--success); }
+.badge-warn    { background: var(--warn-lt);    color: var(--warn); }
+.badge-danger  { background: var(--danger-lt);  color: var(--danger); }
+.badge-accent  { background: var(--accent-lt);  color: var(--accent); }
+.badge-neutral { background: var(--ground2);    color: var(--ink2); }
 
-  /* Step indicator */
-  .steps { display: flex; align-items: center; gap: 0; margin-bottom: 24px; }
-  .step { display: flex; align-items: center; flex: 1; }
-  .step-dot {
-    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700;
-    background: var(--bg3); color: var(--text3); flex-shrink: 0;
-  }
-  .step-dot.done { background: var(--success); border-color: var(--success); color: #fff; }
-  .step-dot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-  .step-line { flex: 1; height: 2px; background: var(--border); }
-  .step-line.done { background: var(--success); }
-  .step-label { font-size: 11px; color: var(--text3); text-align: center; margin-top: 4px; }
+/* ─── Table ──────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+th {
+  text-align: left;
+  padding: 9px 16px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink2);
+  vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--ground); }
 
-  /* Timeline */
-  .timeline { list-style: none; }
-  .timeline-item { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
-  .timeline-item::before { content:''; position:absolute; left:11px; top:24px; bottom:0; width:1px; background:var(--border); }
-  .timeline-item:last-child::before { display: none; }
-  .timeline-dot { width: 24px; height: 24px; border-radius: 50%; background: var(--bg3); border: 2px solid var(--border); flex-shrink: 0; display:flex;align-items:center;justify-content:center;font-size:11px; }
-  .timeline-dot.success { background: rgba(34,197,94,.2); border-color: var(--success); }
-  .timeline-dot.pending { background: rgba(245,158,11,.2); border-color: var(--warning); }
-  .timeline-content { flex: 1; }
-  .timeline-title { font-size: 13px; font-weight: 600; }
-  .timeline-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+/* ─── Form ───────────────────────────────────────────── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 5px;
+  letter-spacing: .01em;
+}
+.form-control {
+  width: 100%;
+  padding: 8px 11px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .13s;
+}
+.form-control:focus { border-color: var(--accent); }
+.form-control::placeholder { color: var(--muted); }
+select.form-control { cursor: pointer; }
+textarea.form-control { resize: vertical; min-height: 72px; }
+.form-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
 
-  /* Modal */
-  .modal-overlay { display:none; position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:20px; }
-  .modal-overlay.open { display:flex; }
-  .modal { background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto; }
-  .modal-header { padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between; }
-  .modal-header h3 { font-size:15px;font-weight:700; }
-  .modal-close { background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1; }
-  .modal-close:hover { color:var(--text); }
-  .modal-body { padding:20px; }
-  .modal-footer { padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px; }
+/* ─── Alert ──────────────────────────────────────────── */
+.alert {
+  padding: 11px 14px;
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  margin-bottom: 16px;
+  display: flex; gap: 9px; align-items: flex-start;
+  border-left: 3px solid;
+}
+.alert-success { background: var(--success-lt); border-color: var(--success); color: var(--success); }
+.alert-danger  { background: var(--danger-lt);  border-color: var(--danger);  color: var(--danger); }
+.alert-accent  { background: var(--accent-lt);  border-color: var(--accent);  color: var(--accent); }
+.alert strong { color: inherit; }
 
-  /* Code block */
-  .code-block { background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:14px;font-family:monospace;font-size:12px;overflow-x:auto;white-space:pre;color:#a5f3fc;max-height:200px;overflow-y:auto; }
+/* ─── Drop zone ──────────────────────────────────────── */
+.drop-zone {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 36px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: var(--ground);
+}
+.drop-zone:hover, .drop-zone.drag-over {
+  border-color: var(--accent);
+  background: var(--accent-lt);
+}
+.drop-icon { font-size: 26px; margin-bottom: 10px; opacity: .5; }
+.drop-text { font-size: 13px; color: var(--ink2); font-weight: 500; }
+.drop-sub  { font-size: 11.5px; color: var(--muted); margin-top: 3px; }
 
-  /* Hash display */
-  .hash-display { font-family:monospace;font-size:11px;color:var(--accent2);word-break:break-all;background:var(--bg);padding:8px;border-radius:5px;border:1px solid var(--border); }
+/* ─── Hash display ───────────────────────────────────── */
+.hash-block {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  word-break: break-all;
+  line-height: 1.6;
+}
 
-  /* Spinner */
-  .spinner { display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
+/* ─── Code block ─────────────────────────────────────── */
+.code-block {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  background: var(--ground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 180px;
+  white-space: pre;
+  color: var(--ink2);
+}
 
-  /* Chip */
-  .chip { display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;background:var(--bg3);border:1px solid var(--border);color:var(--text2); }
+/* ─── Divider ────────────────────────────────────────── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
 
-  /* Empty state */
-  .empty-state { text-align:center;padding:48px 20px;color:var(--text3); }
-  .empty-state .empty-icon { font-size:48px;margin-bottom:12px; }
-  .empty-state p { font-size:14px; }
+/* ─── Empty state ────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 30px; margin-bottom: 10px; opacity: .4; }
+.empty p { font-size: 13px; }
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width:6px; height:6px; }
-  ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-  ::-webkit-scrollbar-thumb:hover { background:var(--text3); }
+/* ─── Section header ─────────────────────────────────── */
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.section-head h2 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--ink);
+}
+.section-head .section-sub { font-size: 12.5px; color: var(--muted); }
+.section-head .section-actions { margin-left: auto; display: flex; gap: 8px; }
+
+/* ─── Progress ───────────────────────────────────────── */
+.progress { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-bar { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+
+/* ─── Timeline ───────────────────────────────────────── */
+.timeline { list-style: none; }
+.tl-item {
+  display: flex; gap: 12px;
+  padding-bottom: 18px;
+  position: relative;
+}
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: 11px; top: 22px; bottom: 0;
+  width: 1px; background: var(--border);
+}
+.tl-item:last-child::before { display: none; }
+.tl-dot {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--ground2);
+  border: 1.5px solid var(--border2);
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--muted);
+}
+.tl-dot.done {
+  background: var(--success-lt);
+  border-color: var(--success);
+  color: var(--success);
+}
+.tl-dot.active {
+  background: var(--accent-lt);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.tl-body { flex: 1; padding-top: 2px; }
+.tl-title { font-size: 12.5px; font-weight: 500; color: var(--ink); margin-bottom: 2px; }
+.tl-meta  { font-size: 11px; color: var(--muted); }
+
+/* ─── Chip / tag ─────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 11px; font-weight: 500;
+  background: var(--ground2);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+}
+
+/* ─── Modal ──────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(10,31,61,.4);
+  z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(2px);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 100%; max-width: 520px;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-md);
+}
+.modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-header h3 { font-size: 14px; font-weight: 600; }
+.modal-close {
+  background: none; border: none;
+  color: var(--muted); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 2px 4px;
+  border-radius: 3px;
+}
+.modal-close:hover { color: var(--ink); background: var(--ground); }
+.modal-body { padding: 20px; }
+.modal-footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* ─── Workflow card ──────────────────────────────────── */
+.wf-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.wf-card-head {
+  padding: 14px 18px;
+  display: flex; align-items: flex-start; gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.wf-card-body { padding: 14px 18px; }
+.wf-signer-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 12.5px;
+}
+.wf-signer-row:last-child { border-bottom: none; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
 </style>
-</head>
-<body>
 
-<!-- Sidebar -->
+<!-- ════ SIDEBAR ════════════════════════════════════════ -->
 <div class="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-icon">🔐</div>
-    <div>
-      <div class="logo-text">360 Digital Trust</div>
-      <div class="logo-sub">PKI Signature Platform</div>
+  <div class="brand">
+    <div class="brand-mark">
+      <div class="brand-icon">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 1.5L2 4v4c0 3.1 2.5 5.7 6 6.5 3.5-.8 6-3.4 6-6.5V4L8 1.5z" fill="white" opacity=".9"/>
+          <path d="M5.5 8l1.8 1.8L10.5 6.5" stroke="#0A1F3D" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="brand-name">360 Digital Trust</div>
     </div>
+    <div class="brand-sub">PKI Signature Platform</div>
   </div>
+
   <nav class="nav">
     <div class="nav-section">Vue d'ensemble</div>
     <div class="nav-item active" onclick="navigate('dashboard')">
-      <span class="icon">📊</span> Tableau de bord
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/>
+        <rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/>
+      </svg>
+      Tableau de bord
     </div>
     <div class="nav-section">Signature</div>
     <div class="nav-item" onclick="navigate('sign')">
-      <span class="icon">✍️</span> Signer un document
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M2 11l7-7 3 3-7 7H2v-3z"/><path d="M11 2l2 1-1 2"/>
+      </svg>
+      Signer un document
     </div>
     <div class="nav-item" onclick="navigate('verify')">
-      <span class="icon">🔍</span> Vérifier une signature
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="7" cy="7" r="5"/><path d="M12 12l2.5 2.5"/>
+      </svg>
+      Vérifier
     </div>
-    <div class="nav-section">Workflows</div>
+    <div class="nav-section">Workflow</div>
     <div class="nav-item" onclick="navigate('workflows')">
-      <span class="icon">🔄</span> Workflows <span class="nav-badge" id="wf-badge">0</span>
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="3" cy="8" r="2"/><circle cx="13" cy="4" r="2"/><circle cx="13" cy="12" r="2"/>
+        <path d="M5 8h3l2-4M5 8h3l2 4"/>
+      </svg>
+      Workflows <span class="nav-count" id="wf-badge">0</span>
     </div>
     <div class="nav-item" onclick="navigate('workflow-create')">
-      <span class="icon">➕</span> Nouveau workflow
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="8" cy="8" r="6"/><path d="M8 5v6M5 8h6"/>
+      </svg>
+      Nouveau workflow
     </div>
     <div class="nav-section">Administration</div>
     <div class="nav-item" onclick="navigate('users')">
-      <span class="icon">👥</span> Utilisateurs
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5"/>
+        <circle cx="12" cy="9" r="2.5"/><path d="M12 6.5v5M9.5 9H14.5" stroke-linecap="round"/>
+      </svg>
+      Utilisateurs
     </div>
     <div class="nav-item" onclick="navigate('audit')">
-      <span class="icon">📋</span> Audit & Logs
-    </div>
-    <div class="nav-item" onclick="navigate('certs')">
-      <span class="icon">🏅</span> Certificats
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="2" y="1" width="12" height="14" rx="1.5"/>
+        <path d="M5 5h6M5 8h6M5 11h4"/>
+      </svg>
+      Audit & Logs
     </div>
     <div class="nav-item" onclick="navigate('keys')">
-      <span class="icon">🔑</span> Clés
+      <svg class="ni-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <circle cx="6" cy="10" r="4"/><path d="M10 10l5-5M14 5l-1.5 1.5M12 3l1.5 1.5"/>
+      </svg>
+      Clés
     </div>
   </nav>
-  <div class="sidebar-bottom">
-    <div class="status-pill">
-      <div class="status-dot" id="api-status-dot"></div>
-      <span id="api-status-text">Vérification API...</span>
+
+  <div class="sidebar-foot">
+    <div class="api-status">
+      <div class="status-dot checking" id="api-dot"></div>
+      <span id="api-label">Connexion…</span>
+      <button class="theme-btn" onclick="toggleTheme()" title="Thème">◐</button>
     </div>
   </div>
 </div>
 
-<!-- Main -->
+<!-- ════ MAIN ════════════════════════════════════════════ -->
 <div class="main">
   <div class="topbar">
     <div class="topbar-title" id="page-title">Tableau de bord</div>
     <div class="topbar-right">
-      <span id="topbar-time" style="font-size:12px;color:var(--text3)"></span>
-      <div class="chip" id="api-url-chip">API: /api</div>
+      <span class="topbar-time" id="tb-time"></span>
+      <button class="btn btn-outline btn-sm" onclick="navigate(currentPage)">↺ Rafraîchir</button>
     </div>
   </div>
 
   <div class="content">
 
-    <!-- DASHBOARD -->
+    <!-- ── DASHBOARD ─────────────────────────────── -->
     <div class="page active" id="page-dashboard">
-      <div id="dash-alert"></div>
-      <div class="grid-4" style="margin-bottom:20px">
-        <div class="card stat-card">
-          <div class="stat-icon">✍️</div>
-          <div class="stat-label">Signatures totales</div>
-          <div class="stat-value" id="stat-sigs">—</div>
-          <div class="stat-sub">Tous formats confondus</div>
+      <div class="section-head">
+        <h2>Vue d'ensemble</h2>
+        <span class="section-sub">Activité de la plateforme</span>
+        <div class="section-actions">
+          <button class="btn btn-primary btn-sm" onclick="navigate('sign')">Nouvelle signature</button>
         </div>
-        <div class="card stat-card">
-          <div class="stat-icon">🔄</div>
-          <div class="stat-label">Workflows actifs</div>
-          <div class="stat-value" id="stat-wf">—</div>
+      </div>
+
+      <div id="dash-alert"></div>
+
+      <div class="grid-4" style="margin-bottom:20px">
+        <div class="stat-card">
+          <div class="stat-eyebrow">Signatures</div>
+          <div class="stat-value stat-accent" id="s-sigs">—</div>
+          <div class="stat-sub">Hash-only signing</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-eyebrow">Workflows actifs</div>
+          <div class="stat-value" id="s-wf">—</div>
           <div class="stat-sub">En cours</div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-icon">👥</div>
-          <div class="stat-label">Utilisateurs</div>
-          <div class="stat-value" id="stat-users">—</div>
+        <div class="stat-card">
+          <div class="stat-eyebrow">Utilisateurs</div>
+          <div class="stat-value" id="s-users">—</div>
           <div class="stat-sub">Signataires enregistrés</div>
         </div>
-        <div class="card stat-card">
-          <div class="stat-icon">🏅</div>
-          <div class="stat-label">Clés générées</div>
-          <div class="stat-value" id="stat-keys">—</div>
-          <div class="stat-sub">Paires de clés actives</div>
+        <div class="stat-card">
+          <div class="stat-eyebrow">Clés générées</div>
+          <div class="stat-value" id="s-keys">—</div>
+          <div class="stat-sub">Cette session</div>
         </div>
       </div>
-      <div class="grid-2" style="margin-bottom:20px">
+
+      <div class="grid-2">
         <div class="card">
-          <div class="card-header"><h3>📋 Activité récente</h3></div>
+          <div class="card-header"><h3>Activité récente</h3></div>
           <div class="card-body" id="dash-recent">
-            <div class="empty-state"><div class="empty-icon">🕓</div><p>Chargement...</p></div>
+            <div class="empty"><div class="empty-icon">◌</div><p>Chargement…</p></div>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h3>📊 Statistiques par type</h3></div>
+          <div class="card-header">
+            <h3>Répartition par type</h3>
+          </div>
           <div class="card-body" id="dash-stats">
-            <div class="empty-state"><div class="empty-icon">📈</div><p>Chargement...</p></div>
+            <div class="empty"><div class="empty-icon">◌</div><p>Chargement…</p></div>
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><h3>🚀 Actions rapides</h3></div>
-        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="navigate('sign')">✍️ Signer un document</button>
-          <button class="btn btn-outline" onclick="navigate('workflow-create')">🔄 Créer un workflow</button>
-          <button class="btn btn-outline" onclick="navigate('users')">👤 Ajouter un utilisateur</button>
-          <button class="btn btn-outline" onclick="navigate('keys')">🔑 Générer une clé</button>
-          <button class="btn btn-outline" onclick="navigate('audit')">📋 Voir les logs</button>
-        </div>
+
+      <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="navigate('sign')">✦ Signer un document</button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('workflow-create')">✦ Créer un workflow</button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('keys')">✦ Générer une clé</button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('audit')">✦ Consulter les logs</button>
       </div>
     </div>
 
-    <!-- SIGN -->
+    <!-- ── SIGN ───────────────────────────────────── -->
     <div class="page" id="page-sign">
+      <div class="section-head"><h2>Signer un document</h2></div>
+
       <div class="grid-2" style="align-items:start">
-        <div>
-          <div class="card" style="margin-bottom:16px">
-            <div class="card-header"><h3>📄 Document à signer</h3></div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header"><h3>Document</h3></div>
             <div class="card-body">
-              <div class="alert alert-info">🔒 <strong>Privacy-first :</strong> seul le <em>hash SHA-256</em> du document est envoyé au serveur. Votre fichier ne quitte jamais votre navigateur.</div>
+              <div class="alert alert-accent" style="font-size:12px">
+                <span>🔒</span>
+                <span><strong>Privacy-first.</strong> Le hash SHA-256 est calculé localement par votre navigateur. Le fichier ne quitte jamais votre machine.</span>
+              </div>
               <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-                <div class="drop-icon">📁</div>
-                <div class="drop-text" id="drop-text">Glissez un fichier ici ou cliquez pour choisir</div>
-                <div class="drop-sub">PDF, XML, DOCX — max 100 MB</div>
+                <div class="drop-icon">⊕</div>
+                <div class="drop-text" id="drop-text">Glissez un fichier ou cliquez pour parcourir</div>
+                <div class="drop-sub">PDF · XML · DOCX — max 100 Mo</div>
               </div>
               <input type="file" id="file-input" style="display:none" accept=".pdf,.xml,.docx,.doc,.txt">
-              <div id="file-info" style="display:none;margin-top:12px">
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                  <span class="chip" id="file-name-chip">—</span>
-                  <span class="chip" id="file-size-chip">—</span>
-                  <span class="chip" id="file-type-chip">—</span>
+              <div id="file-info" style="display:none;margin-top:14px">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+                  <span class="chip" id="f-name">—</span>
+                  <span class="chip" id="f-size">—</span>
+                  <span class="chip" id="f-type">—</span>
                 </div>
-                <div style="margin-top:10px">
-                  <div class="form-label">Hash SHA-256 (calculé localement)</div>
-                  <div class="hash-display" id="file-hash">Calcul en cours...</div>
-                </div>
+                <div class="form-label">Empreinte SHA-256 (calculée localement)</div>
+                <div class="hash-block" id="f-hash">Calcul en cours…</div>
               </div>
             </div>
           </div>
+
           <div class="card">
-            <div class="card-header"><h3>⚙️ Options de signature</h3></div>
+            <div class="card-header"><h3>Paramètres de signature</h3></div>
             <div class="card-body">
               <div class="form-group">
                 <label class="form-label">ID de la clé de signature</label>
-                <input class="form-control" id="sign-key-id" placeholder="ex: key-RSA-2048-abc123">
+                <input class="form-control" id="sign-key-id" placeholder="key-RSA-2048-…">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <div class="form-group">
+                  <label class="form-label">Algorithme de hachage</label>
+                  <select class="form-control" id="sign-algo">
+                    <option value="sha256">SHA-256</option>
+                    <option value="sha384">SHA-384</option>
+                    <option value="sha512">SHA-512</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">ID signataire</label>
+                  <input class="form-control" id="sign-signer-id" placeholder="Optionnel">
+                </div>
               </div>
               <div class="form-group">
-                <label class="form-label">Algorithme de hachage</label>
-                <select class="form-control" id="sign-algo">
-                  <option value="sha256">SHA-256 (recommandé)</option>
-                  <option value="sha384">SHA-384</option>
-                  <option value="sha512">SHA-512</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">ID du signataire (optionnel)</label>
-                <input class="form-control" id="sign-signer-id" placeholder="ex: signer-001">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Métadonnées (JSON optionnel)</label>
-                <textarea class="form-control" id="sign-metadata" placeholder='{"reason":"Approbation contrat","location":"Paris"}'></textarea>
+                <label class="form-label">Métadonnées JSON</label>
+                <textarea class="form-control" id="sign-meta" style="min-height:56px" placeholder='{"reason":"Approbation","location":"Paris"}'></textarea>
               </div>
               <button class="btn btn-primary" id="sign-btn" onclick="doSignHash()" style="width:100%" disabled>
-                🔐 Signer (hash uniquement)
+                Signer le document
               </button>
             </div>
           </div>
         </div>
-        <div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card" id="sign-result-card" style="display:none">
-            <div class="card-header"><h3>✅ Résultat de signature</h3></div>
-            <div class="card-body">
-              <div id="sign-result-content"></div>
-            </div>
+            <div class="card-header"><h3>Résultat</h3></div>
+            <div class="card-body" id="sign-result-body"></div>
           </div>
-          <div class="card" style="margin-top:16px">
-            <div class="card-header"><h3>ℹ️ Comment ça marche</h3></div>
+
+          <div class="card">
+            <div class="card-header"><h3>Protocole</h3></div>
             <div class="card-body">
               <ul class="timeline">
-                <li class="timeline-item">
-                  <div class="timeline-dot success">1</div>
-                  <div class="timeline-content">
-                    <div class="timeline-title">Calcul local du hash</div>
-                    <div class="timeline-meta">Web Crypto API — votre navigateur calcule le SHA-256</div>
+                <li class="tl-item">
+                  <div class="tl-dot done">1</div>
+                  <div class="tl-body">
+                    <div class="tl-title">Lecture locale du fichier</div>
+                    <div class="tl-meta">File API — aucun transfert réseau</div>
                   </div>
                 </li>
-                <li class="timeline-item">
-                  <div class="timeline-dot success">2</div>
-                  <div class="timeline-content">
-                    <div class="timeline-title">Envoi du hash uniquement</div>
-                    <div class="timeline-meta">Seuls 32 octets transitent (jamais le document)</div>
+                <li class="tl-item">
+                  <div class="tl-dot done">2</div>
+                  <div class="tl-body">
+                    <div class="tl-title">Calcul SHA-256 (Web Crypto API)</div>
+                    <div class="tl-meta">Natif navigateur, 32 octets produits</div>
                   </div>
                 </li>
-                <li class="timeline-item">
-                  <div class="timeline-dot pending">3</div>
-                  <div class="timeline-content">
-                    <div class="timeline-title">Signature côté serveur (HSM)</div>
-                    <div class="timeline-meta">RSA-PKCS1v15 ou ECDSA avec clé privée sécurisée</div>
+                <li class="tl-item">
+                  <div class="tl-dot active">3</div>
+                  <div class="tl-body">
+                    <div class="tl-title">Envoi du hash uniquement</div>
+                    <div class="tl-meta">POST /v1/sign/hash/sign — 32 octets</div>
                   </div>
                 </li>
-                <li class="timeline-item">
-                  <div class="timeline-dot pending">4</div>
-                  <div class="timeline-content">
-                    <div class="timeline-title">Retour de la signature + certificat</div>
-                    <div class="timeline-meta">Signature Base64, audit enregistré</div>
+                <li class="tl-item">
+                  <div class="tl-dot" style="font-size:8px">4</div>
+                  <div class="tl-body">
+                    <div class="tl-title">Signature côté serveur (RSA/ECDSA)</div>
+                    <div class="tl-meta">Clé privée HSM — signature retournée</div>
                   </div>
                 </li>
               </ul>
@@ -441,313 +915,233 @@
       </div>
     </div>
 
-    <!-- VERIFY -->
+    <!-- ── VERIFY ─────────────────────────────────── -->
     <div class="page" id="page-verify">
+      <div class="section-head"><h2>Vérifier une signature</h2></div>
       <div class="grid-2" style="align-items:start">
         <div class="card">
-          <div class="card-header"><h3>🔍 Vérifier une signature</h3></div>
+          <div class="card-header"><h3>Recherche par ID</h3></div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">ID de signature</label>
-              <input class="form-control" id="verify-sig-id" placeholder="sig-xxxxxxxx-xxxx-...">
+              <label class="form-label">Identifiant de signature</label>
+              <input class="form-control" id="v-id" placeholder="sig-xxxxxxxx-xxxx-…">
             </div>
-            <button class="btn btn-primary" onclick="doVerify()" style="width:100%">🔍 Rechercher</button>
-            <div id="verify-result" style="margin-top:16px"></div>
+            <button class="btn btn-primary" onclick="doVerify()">Rechercher</button>
+            <div id="v-result" style="margin-top:16px"></div>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h3>📋 Toutes les signatures</h3></div>
-          <div class="card-body">
-            <button class="btn btn-outline btn-sm" onclick="loadSignatures()" style="margin-bottom:12px">🔄 Rafraîchir</button>
-            <div id="sigs-list">
-              <div class="empty-state"><div class="empty-icon">📭</div><p>Cliquez sur Rafraîchir</p></div>
-            </div>
+          <div class="card-header"><h3>Signatures récentes</h3>
+            <button class="btn btn-ghost btn-xs" onclick="loadSigs()">↺</button>
+          </div>
+          <div class="card-body" id="sigs-list">
+            <div class="empty"><div class="empty-icon">◌</div><p>Cliquez sur ↺ pour charger</p></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- WORKFLOWS -->
+    <!-- ── WORKFLOWS ──────────────────────────────── -->
     <div class="page" id="page-workflows">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h2 style="font-size:16px;font-weight:600">Workflows de signature</h2>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-outline btn-sm" onclick="loadWorkflows()">🔄 Rafraîchir</button>
-          <button class="btn btn-primary btn-sm" onclick="navigate('workflow-create')">➕ Nouveau</button>
+      <div class="section-head">
+        <h2>Workflows</h2>
+        <div class="section-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadWorkflows()">↺ Rafraîchir</button>
+          <button class="btn btn-primary btn-sm" onclick="navigate('workflow-create')">+ Nouveau</button>
         </div>
       </div>
-      <div id="workflows-list">
-        <div class="empty-state"><div class="empty-icon">🔄</div><p>Chargement...</p></div>
+      <div id="wf-list">
+        <div class="empty"><div class="empty-icon">◌</div><p>Chargement…</p></div>
       </div>
     </div>
 
-    <!-- WORKFLOW CREATE -->
+    <!-- ── WORKFLOW CREATE ────────────────────────── -->
     <div class="page" id="page-workflow-create">
+      <div class="section-head"><h2>Nouveau workflow</h2></div>
       <div class="grid-2" style="align-items:start">
         <div class="card">
-          <div class="card-header"><h3>🔄 Créer un workflow de signature</h3></div>
+          <div class="card-header"><h3>Configuration</h3></div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">Nom du workflow</label>
-              <input class="form-control" id="wf-name" placeholder="ex: Approbation contrat Q4">
+              <label class="form-label">Intitulé</label>
+              <input class="form-control" id="wf-name" placeholder="ex : Approbation contrat Q4 2026">
             </div>
             <div class="form-group">
               <label class="form-label">Description</label>
-              <textarea class="form-control" id="wf-desc" placeholder="Description du workflow..."></textarea>
+              <textarea class="form-control" id="wf-desc" placeholder="Contexte du workflow…"></textarea>
             </div>
             <div class="form-group">
-              <label class="form-label">Hash du document (SHA-256, Base64)</label>
+              <label class="form-label">Empreinte SHA-256 du document</label>
               <div style="display:flex;gap:8px">
                 <input class="form-control" id="wf-hash" placeholder="Base64 du hash SHA-256">
-                <button class="btn btn-outline btn-sm" onclick="pasteLastHash()" title="Coller le dernier hash calculé">📋</button>
+                <button class="btn btn-outline btn-sm" onclick="pasteLastHash()" title="Coller le dernier hash calculé">⊕</button>
+              </div>
+              <div class="form-hint">Calculez l'empreinte depuis la section « Signer »</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="form-group">
+                <label class="form-label">Mode</label>
+                <select class="form-control" id="wf-mode">
+                  <option value="sequential">Séquentiel</option>
+                  <option value="parallel">Parallèle</option>
+                  <option value="mixed">Mixte</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date limite</label>
+                <input type="datetime-local" class="form-control" id="wf-deadline">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Mode de signature</label>
-              <select class="form-control" id="wf-mode">
-                <option value="sequential">Séquentiel (ordre imposé)</option>
-                <option value="parallel">Parallèle (tous en même temps)</option>
-                <option value="mixed">Mixte (groupes parallèles séquentiels)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Date limite (optionnel)</label>
-              <input type="datetime-local" class="form-control" id="wf-deadline">
-            </div>
-            <hr style="border-color:var(--border);margin:16px 0">
+
+            <hr class="divider">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <label class="form-label" style="margin:0">Signataires</label>
-              <button class="btn btn-outline btn-sm" onclick="addSignerRow()">+ Ajouter</button>
+              <span class="form-label" style="margin:0">Signataires</span>
+              <button class="btn btn-outline btn-xs" onclick="addSignerRow()">+ Ajouter</button>
             </div>
-            <div id="signers-list">
-              <!-- Rows added dynamically -->
-            </div>
-            <button class="btn btn-primary" onclick="createWorkflow()" style="width:100%;margin-top:16px">🚀 Créer le workflow</button>
-            <div id="wf-create-result" style="margin-top:12px"></div>
+            <div id="wf-signers"></div>
+
+            <button class="btn btn-primary" onclick="createWorkflow()" style="width:100%;margin-top:16px">Créer le workflow</button>
+            <div id="wf-result" style="margin-top:12px"></div>
           </div>
         </div>
+
         <div>
           <div class="card" style="margin-bottom:16px">
-            <div class="card-header"><h3>ℹ️ Modes de workflow</h3></div>
-            <div class="card-body">
-              <div style="display:flex;flex-direction:column;gap:12px">
-                <div>
-                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">🔢 Séquentiel</div>
-                  <div style="font-size:12px;color:var(--text2)">Chaque signataire signe dans l'ordre défini. Le suivant est notifié quand le précédent a signé.</div>
-                </div>
-                <div>
-                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">⚡ Parallèle</div>
-                  <div style="font-size:12px;color:var(--text2)">Tous les signataires signent simultanément, sans ordre imposé.</div>
-                </div>
-                <div>
-                  <div style="font-size:13px;font-weight:600;margin-bottom:4px">🔀 Mixte</div>
-                  <div style="font-size:12px;color:var(--text2)">Groupes de signataires parallèles, exécutés séquentiellement.</div>
-                </div>
+            <div class="card-header"><h3>Modes de signature</h3></div>
+            <div class="card-body" style="display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:12.5px;font-weight:600;margin-bottom:3px">Séquentiel</div>
+                <div style="font-size:12px;color:var(--muted)">Chaque signataire agit dans un ordre défini. Le suivant est notifié dès la validation précédente.</div>
+              </div>
+              <hr class="divider" style="margin:0">
+              <div>
+                <div style="font-size:12.5px;font-weight:600;margin-bottom:3px">Parallèle</div>
+                <div style="font-size:12px;color:var(--muted)">Tous les signataires signent simultanément, sans ordre imposé.</div>
+              </div>
+              <hr class="divider" style="margin:0">
+              <div>
+                <div style="font-size:12.5px;font-weight:600;margin-bottom:3px">Mixte</div>
+                <div style="font-size:12px;color:var(--muted)">Groupes parallèles exécutés séquentiellement.</div>
               </div>
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><h3>📝 Étapes du workflow</h3></div>
-            <div class="card-body">
-              <div id="wf-preview">
-                <div class="empty-state"><div class="empty-icon">👥</div><p>Ajoutez des signataires pour prévisualiser</p></div>
-              </div>
+            <div class="card-header"><h3>Aperçu</h3></div>
+            <div class="card-body" id="wf-preview">
+              <div class="empty"><div class="empty-icon">⊕</div><p>Ajoutez des signataires</p></div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- USERS -->
+    <!-- ── USERS ──────────────────────────────────── -->
     <div class="page" id="page-users">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h2 style="font-size:16px;font-weight:600">Gestion des utilisateurs</h2>
-        <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Ajouter</button>
+      <div class="section-head">
+        <h2>Utilisateurs</h2>
+        <div class="section-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadUsers()">↺</button>
+          <button class="btn btn-primary btn-sm" onclick="openUserModal()">+ Ajouter</button>
+        </div>
       </div>
       <div class="card">
-        <div class="card-header">
-          <h3>👥 Signataires & administrateurs</h3>
-          <button class="btn btn-outline btn-sm" onclick="loadUsers()">🔄</button>
-        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>ID</th><th>Nom</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Certificat</th><th>Actions</th></tr></thead>
-            <tbody id="users-table-body">
-              <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">Chargement...</td></tr>
+            <thead><tr><th>Identifiant</th><th>Nom</th><th>Email</th><th>Rôle</th><th>Statut</th><th>Certificat</th><th></th></tr></thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">Chargement…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- AUDIT -->
+    <!-- ── AUDIT ──────────────────────────────────── -->
     <div class="page" id="page-audit">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h2 style="font-size:16px;font-weight:600">Audit & Logs</h2>
-        <button class="btn btn-outline btn-sm" onclick="loadAudit()">🔄 Rafraîchir</button>
+      <div class="section-head">
+        <h2>Audit & Logs</h2>
+        <div class="section-actions">
+          <button class="btn btn-ghost btn-sm" onclick="loadAudit()">↺</button>
+          <button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ CSV</button>
+        </div>
       </div>
+
+      <div class="grid-3" style="margin-bottom:18px">
+        <div class="stat-card"><div class="stat-eyebrow">Total événements</div><div class="stat-value" id="a-total">—</div></div>
+        <div class="stat-card"><div class="stat-eyebrow">Signatures hash</div><div class="stat-value stat-accent" id="a-hash">—</div></div>
+        <div class="stat-card"><div class="stat-eyebrow">Clés générées</div><div class="stat-value" id="a-keys">—</div></div>
+      </div>
+
       <div class="card" style="margin-bottom:16px">
-        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-          <div style="flex:1;min-width:150px">
-            <label class="form-label">Type d'événement</label>
-            <select class="form-control" id="audit-filter-type" onchange="loadAudit()">
+        <div class="card-body" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;padding:14px 16px">
+          <div style="flex:1;min-width:140px">
+            <label class="form-label">Type</label>
+            <select class="form-control" id="af-type" onchange="loadAudit()">
               <option value="">Tous</option>
               <option value="hash_signed">hash_signed</option>
               <option value="key_generated">key_generated</option>
               <option value="workflow_created">workflow_created</option>
-              <option value="workflow_step_signed">workflow_step_signed</option>
             </select>
           </div>
-          <div style="flex:1;min-width:150px">
-            <label class="form-label">ID signataire</label>
-            <input class="form-control" id="audit-filter-signer" placeholder="Filtrer par signataire">
+          <div style="flex:1;min-width:140px">
+            <label class="form-label">Signataire</label>
+            <input class="form-control" id="af-signer" placeholder="ID signataire">
           </div>
-          <button class="btn btn-primary btn-sm" onclick="loadAudit()">🔍 Filtrer</button>
-          <button class="btn btn-outline btn-sm" onclick="exportAudit()">⬇️ Exporter CSV</button>
+          <button class="btn btn-primary btn-sm" onclick="loadAudit()">Filtrer</button>
         </div>
       </div>
-      <div class="grid-3" style="margin-bottom:16px" id="audit-stats-grid">
-        <div class="card stat-card"><div class="stat-label">Total événements</div><div class="stat-value" id="as-total">—</div></div>
-        <div class="card stat-card"><div class="stat-label">Signatures hash</div><div class="stat-value" id="as-hash">—</div></div>
-        <div class="card stat-card"><div class="stat-label">Clés générées</div><div class="stat-value" id="as-keys">—</div></div>
-      </div>
+
       <div class="card">
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Horodatage</th><th>Type</th><th>ID signature</th><th>Signataire</th><th>Algorithme</th><th>Détails</th></tr></thead>
-            <tbody id="audit-table-body">
-              <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">Chargement...</td></tr>
+            <thead><tr><th>Horodatage</th><th>Type</th><th>ID signature</th><th>Signataire</th><th>Algorithme</th><th></th></tr></thead>
+            <tbody id="audit-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">Chargement…</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </div>
 
-    <!-- CERTS -->
-    <div class="page" id="page-certs">
-      <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
-        <h2 style="font-size:16px;font-weight:600">Gestion des certificats</h2>
-        <button class="btn btn-outline btn-sm" onclick="loadCerts()">🔄 Rafraîchir</button>
-      </div>
-      <div class="grid-2" style="margin-bottom:16px;align-items:start">
-        <div class="card">
-          <div class="card-header"><h3>🏗️ Générer un certificat</h3></div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Common Name (CN)</label>
-              <input class="form-control" id="cert-cn" placeholder="ex: Alice Dupont">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Organisation (O)</label>
-              <input class="form-control" id="cert-org" placeholder="ex: ACME Corp">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Pays (C)</label>
-              <input class="form-control" id="cert-country" placeholder="FR" maxlength="2">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Type de certificat</label>
-              <select class="form-control" id="cert-type">
-                <option value="end-entity">Utilisateur final (End-Entity)</option>
-                <option value="code-signing">Signature de code</option>
-                <option value="tls-client">Authentification TLS client</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" onclick="generateCert()" style="width:100%">🏅 Générer via EJBCA</button>
-            <div id="cert-result" style="margin-top:12px"></div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><h3>📜 Chaîne de confiance PKI</h3></div>
-          <div class="card-body">
-            <ul class="timeline">
-              <li class="timeline-item">
-                <div class="timeline-dot success">🏛️</div>
-                <div class="timeline-content">
-                  <div class="timeline-title">Root CA (RSA 4096, 20 ans)</div>
-                  <div class="timeline-meta">360DT-Root-CA · Confiance maximale</div>
-                </div>
-              </li>
-              <li class="timeline-item">
-                <div class="timeline-dot success">✍️</div>
-                <div class="timeline-content">
-                  <div class="timeline-title">Sub-CA Signature (RSA 4096, 10 ans)</div>
-                  <div class="timeline-meta">360DT-Sub-Sig-CA · Émet les certificats signataires</div>
-                </div>
-              </li>
-              <li class="timeline-item">
-                <div class="timeline-dot success">⏱️</div>
-                <div class="timeline-content">
-                  <div class="timeline-title">Sub-CA TSA (RSA 4096, 10 ans)</div>
-                  <div class="timeline-meta">360DT-Sub-TSA-CA · Horodatage RFC 3161</div>
-                </div>
-              </li>
-              <li class="timeline-item">
-                <div class="timeline-dot success">🔍</div>
-                <div class="timeline-content">
-                  <div class="timeline-title">Sub-CA OCSP (RSA 2048, 5 ans)</div>
-                  <div class="timeline-meta">360DT-Sub-OCSP-CA · Révocation en temps réel</div>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header"><h3>📋 Certificats émis</h3></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Sujet</th><th>Numéro de série</th><th>Émetteur</th><th>Valide jusqu'au</th><th>Statut</th></tr></thead>
-            <tbody id="certs-table-body">
-              <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3)">Cliquez sur Rafraîchir pour charger</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- KEYS -->
+    <!-- ── KEYS ───────────────────────────────────── -->
     <div class="page" id="page-keys">
-      <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
-        <h2 style="font-size:16px;font-weight:600">Gestion des clés</h2>
-      </div>
+      <div class="section-head"><h2>Gestion des clés</h2></div>
       <div class="grid-2" style="align-items:start">
         <div class="card">
-          <div class="card-header"><h3>🔑 Générer une paire de clés</h3></div>
+          <div class="card-header"><h3>Générer une paire de clés</h3></div>
           <div class="card-body">
             <div class="form-group">
               <label class="form-label">Algorithme</label>
-              <select class="form-control" id="key-algo">
-                <option value="RSA">RSA (recommandé pour PAdES/XAdES)</option>
-                <option value="EC">ECDSA (plus rapide, courbes NIST)</option>
+              <select class="form-control" id="k-algo">
+                <option value="RSA">RSA</option>
+                <option value="EC">ECDSA</option>
               </select>
             </div>
-            <div class="form-group" id="key-size-group">
-              <label class="form-label">Taille de clé RSA</label>
-              <select class="form-control" id="key-size">
-                <option value="2048">2048 bits (standard)</option>
+            <div id="k-rsa-group" class="form-group">
+              <label class="form-label">Taille de clé</label>
+              <select class="form-control" id="k-size">
+                <option value="2048">2048 bits</option>
                 <option value="3072">3072 bits</option>
-                <option value="4096">4096 bits (sécurité maximale)</option>
+                <option value="4096">4096 bits</option>
               </select>
             </div>
-            <div class="form-group" id="key-curve-group" style="display:none">
-              <label class="form-label">Courbe elliptique</label>
-              <select class="form-control" id="key-curve">
+            <div id="k-ec-group" class="form-group" style="display:none">
+              <label class="form-label">Courbe</label>
+              <select class="form-control" id="k-curve">
                 <option value="P-256">P-256 (secp256r1)</option>
                 <option value="P-384">P-384 (secp384r1)</option>
                 <option value="P-521">P-521 (secp521r1)</option>
               </select>
             </div>
-            <button class="btn btn-primary" onclick="generateKey()" style="width:100%" id="gen-key-btn">🔑 Générer</button>
-            <div id="key-result" style="margin-top:12px"></div>
+            <button class="btn btn-primary" id="k-btn" onclick="genKey()" style="width:100%">Générer</button>
+            <div id="k-result" style="margin-top:14px"></div>
           </div>
         </div>
+
         <div class="card">
-          <div class="card-header"><h3>📜 Clés disponibles</h3></div>
-          <div class="card-body">
-            <div id="keys-list">
-              <div class="empty-state"><div class="empty-icon">🔑</div><p>Générez votre première clé</p></div>
-            </div>
+          <div class="card-header"><h3>Clés de session</h3></div>
+          <div class="card-body" id="k-list">
+            <div class="empty"><div class="empty-icon">◌</div><p>Générez votre première clé</p></div>
           </div>
         </div>
       </div>
@@ -756,38 +1150,25 @@
   </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- Modal: Add User -->
+<!-- ── MODAL : User ──────────────────────────────── -->
 <div class="modal-overlay" id="modal-user">
   <div class="modal">
     <div class="modal-header">
-      <h3>➕ Ajouter un utilisateur</h3>
-      <button class="modal-close" onclick="closeModal('modal-user')">×</button>
+      <h3>Ajouter un utilisateur</h3>
+      <button class="modal-close" onclick="closeModal('modal-user')">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">ID utilisateur</label>
-        <input class="form-control" id="u-id" placeholder="ex: signer-alice-001">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nom complet</label>
-        <input class="form-control" id="u-name" placeholder="Alice Dupont">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-control" type="email" id="u-email" placeholder="alice@example.com">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Rôle</label>
+      <div class="form-group"><label class="form-label">Identifiant</label><input class="form-control" id="u-id" placeholder="alice-001"></div>
+      <div class="form-group"><label class="form-label">Nom complet</label><input class="form-control" id="u-name" placeholder="Alice Dupont"></div>
+      <div class="form-group"><label class="form-label">Adresse email</label><input class="form-control" type="email" id="u-email" placeholder="alice@acme.fr"></div>
+      <div class="form-group"><label class="form-label">Rôle</label>
         <select class="form-control" id="u-role">
           <option value="signer">Signataire</option>
           <option value="admin">Administrateur</option>
           <option value="auditor">Auditeur</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">Département (optionnel)</label>
-        <input class="form-control" id="u-dept" placeholder="ex: Juridique">
-      </div>
+      <div class="form-group"><label class="form-label">Département</label><input class="form-control" id="u-dept" placeholder="Optionnel"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-user')">Annuler</button>
@@ -796,619 +1177,552 @@
   </div>
 </div>
 
-<!-- Modal: Signature detail -->
-<div class="modal-overlay" id="modal-sig-detail">
+<!-- ── MODAL : Sig detail ────────────────────────── -->
+<div class="modal-overlay" id="modal-sig">
   <div class="modal">
-    <div class="modal-header">
-      <h3>📋 Détail de signature</h3>
-      <button class="modal-close" onclick="closeModal('modal-sig-detail')">×</button>
-    </div>
-    <div class="modal-body" id="modal-sig-detail-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-sig-detail')">Fermer</button>
-    </div>
+    <div class="modal-header"><h3>Détail de signature</h3><button class="modal-close" onclick="closeModal('modal-sig')">✕</button></div>
+    <div class="modal-body" id="modal-sig-body"></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('modal-sig')">Fermer</button></div>
   </div>
 </div>
 
 <script>
-// =====================
-// CONFIG & STATE
-// =====================
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
 const API = '/api';
 let currentPage = 'dashboard';
 let lastHash = null;
 let keysList = [];
 let signerRows = [];
 
-// =====================
-// NAVIGATION
-// =====================
+// ═══════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════
+function toggleTheme() {
+  const r = document.documentElement;
+  const cur = r.getAttribute('data-theme');
+  r.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+}
+
+// ═══════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════
+function tick() {
+  document.getElementById('tb-time').textContent =
+    new Date().toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tick, 1000); tick();
+
+// ═══════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════
+const TITLES = {
+  dashboard:'Tableau de bord', sign:'Signer un document', verify:'Vérifier',
+  workflows:'Workflows', 'workflow-create':'Nouveau workflow',
+  users:'Utilisateurs', audit:'Audit & Logs', keys:'Clés'
+};
 function navigate(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const el = document.getElementById('page-' + page);
   if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + page + "'")) n.classList.add('active');
   });
+  document.getElementById('page-title').textContent = TITLES[page] || page;
   currentPage = page;
-  const titles = { dashboard:'Tableau de bord', sign:'Signer un document', verify:'Vérifier une signature',
-    workflows:'Workflows de signature', 'workflow-create':'Nouveau workflow', users:'Gestion des utilisateurs',
-    audit:'Audit & Logs', certs:'Certificats', keys:'Clés' };
-  document.getElementById('page-title').textContent = titles[page] || page;
   if (page === 'dashboard') loadDashboard();
   else if (page === 'workflows') loadWorkflows();
   else if (page === 'users') loadUsers();
   else if (page === 'audit') loadAudit();
-  else if (page === 'certs') loadCerts();
-  else if (page === 'workflow-create') initWorkflowCreate();
+  else if (page === 'workflow-create') initWFCreate();
+  else if (page === 'sign') { lastHash = null; document.getElementById('file-info').style.display='none'; document.getElementById('sign-btn').disabled=true; document.getElementById('sign-result-card').style.display='none'; }
 }
 
-// =====================
+// ═══════════════════════════════════════════════
 // API HELPERS
-// =====================
+// ═══════════════════════════════════════════════
 async function apiFetch(path, opts = {}) {
-  const res = await fetch(API + path, {
-    headers: { 'Content-Type': 'application/json', ...opts.headers },
-    ...opts
-  });
+  const res = await fetch(API + path, { headers: {'Content-Type':'application/json'}, ...opts });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.detail || data.message || `HTTP ${res.status}`);
   return data;
 }
 
-function setApiStatus(ok, msg) {
-  const dot = document.getElementById('api-status-dot');
-  const txt = document.getElementById('api-status-text');
-  dot.style.background = ok ? 'var(--success)' : 'var(--danger)';
-  txt.textContent = ok ? msg : 'API indisponible';
-}
-
 async function checkApi() {
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-label');
+  dot.className = 'status-dot checking';
+  lbl.textContent = 'Connexion…';
   try {
-    const data = await apiFetch('/v1/health');
-    setApiStatus(true, 'API connectée');
+    await apiFetch('/v1/health');
+    dot.className = 'status-dot';
+    lbl.textContent = 'API connectée';
   } catch {
-    setApiStatus(false, '');
+    dot.className = 'status-dot offline';
+    lbl.textContent = 'API indisponible';
   }
 }
+checkApi();
+setInterval(checkApi, 30000);
 
-// =====================
-// CLOCK
-// =====================
-function updateClock() {
-  document.getElementById('topbar-time').textContent = new Date().toLocaleString('fr-FR');
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// =====================
+// ═══════════════════════════════════════════════
 // DASHBOARD
-// =====================
+// ═══════════════════════════════════════════════
 async function loadDashboard() {
   try {
-    const [stats, users] = await Promise.allSettled([
+    const [stats, users, wfs] = await Promise.allSettled([
       apiFetch('/v1/audit/stats'),
-      apiFetch('/v1/users/')
+      apiFetch('/v1/users/'),
+      apiFetch('/v1/workflows/')
     ]);
     if (stats.status === 'fulfilled') {
       const s = stats.value;
-      const total = Object.values(s.by_event_type || {}).reduce((a,b) => a + b, 0);
-      document.getElementById('stat-sigs').textContent = (s.by_event_type?.hash_signed || 0);
-      document.getElementById('stat-keys').textContent = (s.by_event_type?.key_generated || 0);
+      document.getElementById('s-sigs').textContent = s.by_event_type?.hash_signed ?? 0;
+      document.getElementById('s-keys').textContent = s.by_event_type?.key_generated ?? 0;
+      const total = Object.values(s.by_event_type || {}).reduce((a,b)=>a+b,0);
       const statsEl = document.getElementById('dash-stats');
-      if (s.by_event_type && Object.keys(s.by_event_type).length) {
-        statsEl.innerHTML = Object.entries(s.by_event_type).map(([k,v]) =>
-          `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
-            <span style="font-size:13px">${k}</span><span class="badge badge-info">${v}</span></div>`
-        ).join('');
+      if (Object.keys(s.by_event_type || {}).length) {
+        statsEl.innerHTML = Object.entries(s.by_event_type).map(([k,v]) => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">
+            <span style="font-size:12px;font-family:'JetBrains Mono',monospace">${k}</span>
+            <span style="font-size:13px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums">${v}</span>
+          </div>`).join('');
       } else {
-        statsEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📊</div><p>Aucune donnée</p></div>';
+        statsEl.innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Aucune donnée</p></div>';
       }
     }
-    if (users.status === 'fulfilled') {
-      document.getElementById('stat-users').textContent = users.value.length || 0;
+    if (users.status === 'fulfilled') document.getElementById('s-users').textContent = users.value.length ?? 0;
+    if (wfs.status === 'fulfilled') {
+      const active = wfs.value.filter(w => w.status !== 'completed' && w.status !== 'cancelled').length;
+      document.getElementById('s-wf').textContent = active;
+      document.getElementById('wf-badge').textContent = active;
     }
-    // Recent audit
+    // Recent
     try {
-      const logs = await apiFetch('/v1/audit/logs?limit=5');
+      const logs = await apiFetch('/v1/audit/logs?limit=6');
       const el = document.getElementById('dash-recent');
       if (logs.length) {
-        el.innerHTML = '<ul class="timeline">' + logs.map(l =>
-          `<li class="timeline-item"><div class="timeline-dot success">✓</div>
-           <div class="timeline-content">
-             <div class="timeline-title">${l.event_type}</div>
-             <div class="timeline-meta">${l.signer_id || '—'} · ${new Date(l.timestamp).toLocaleString('fr-FR')}</div>
-           </div></li>`).join('') + '</ul>';
+        el.innerHTML = '<ul class="timeline">' + logs.map(l => `
+          <li class="tl-item">
+            <div class="tl-dot done" style="font-size:9px">✓</div>
+            <div class="tl-body">
+              <div class="tl-title">${l.event_type}</div>
+              <div class="tl-meta">${l.signer_id || '—'} · ${new Date(l.timestamp).toLocaleString('fr-FR')}</div>
+            </div>
+          </li>`).join('') + '</ul>';
       } else {
-        el.innerHTML = '<div class="empty-state"><div class="empty-icon">🕓</div><p>Aucune activité</p></div>';
+        el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Aucune activité</p></div>';
       }
-    } catch { }
-    // Workflows
-    try {
-      const wfs = await apiFetch('/v1/workflows/');
-      const active = wfs.filter(w => w.status === 'pending' || w.status === 'in_progress').length;
-      document.getElementById('stat-wf').textContent = active;
-      document.getElementById('wf-badge').textContent = active;
-    } catch { }
+    } catch {}
   } catch (e) {
-    document.getElementById('dash-alert').innerHTML = `<div class="alert alert-danger">⚠️ Erreur : ${e.message}</div>`;
+    document.getElementById('dash-alert').innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
   }
 }
 
-// =====================
-// SIGN (HASH-ONLY)
-// =====================
+// ═══════════════════════════════════════════════
+// SIGN
+// ═══════════════════════════════════════════════
 const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-
+document.getElementById('file-input').addEventListener('change', e => e.target.files[0] && handleFile(e.target.files[0]));
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]); });
 
 async function handleFile(file) {
-  if (!file) return;
   document.getElementById('file-info').style.display = 'block';
-  document.getElementById('file-name-chip').textContent = file.name;
-  document.getElementById('file-size-chip').textContent = formatSize(file.size);
-  document.getElementById('file-type-chip').textContent = file.type || 'inconnu';
+  document.getElementById('f-name').textContent = file.name;
+  document.getElementById('f-size').textContent = fmtSize(file.size);
+  document.getElementById('f-type').textContent = file.type || '—';
   document.getElementById('drop-text').textContent = file.name;
-  document.getElementById('file-hash').textContent = 'Calcul en cours...';
+  document.getElementById('f-hash').textContent = 'Calcul…';
   document.getElementById('sign-btn').disabled = true;
   try {
     const buf = await file.arrayBuffer();
-    const hashBuf = await crypto.subtle.digest('SHA-256', buf);
-    const hashArr = Array.from(new Uint8Array(hashBuf));
-    const hashHex = hashArr.map(b => b.toString(16).padStart(2,'0')).join('');
-    const hashB64 = btoa(String.fromCharCode(...hashArr));
-    lastHash = hashB64;
-    document.getElementById('file-hash').textContent = hashHex + '\n(Base64: ' + hashB64 + ')';
+    const hBuf = await crypto.subtle.digest('SHA-256', buf);
+    const arr = new Uint8Array(hBuf);
+    const hex = Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join('');
+    const b64 = btoa(String.fromCharCode(...arr));
+    lastHash = b64;
+    document.getElementById('f-hash').textContent = hex;
     document.getElementById('sign-btn').disabled = false;
   } catch (e) {
-    document.getElementById('file-hash').textContent = 'Erreur: ' + e.message;
+    document.getElementById('f-hash').textContent = 'Erreur : ' + e.message;
   }
 }
 
 async function doSignHash() {
   if (!lastHash) return;
   const keyId = document.getElementById('sign-key-id').value.trim();
-  if (!keyId) { alert('Veuillez entrer un ID de clé'); return; }
+  if (!keyId) { alert('Veuillez saisir un ID de clé'); return; }
   const btn = document.getElementById('sign-btn');
-  btn.innerHTML = '<span class="spinner"></span> Signature...';
+  btn.innerHTML = '<span class="spinner"></span> Signature…';
   btn.disabled = true;
   try {
     const body = {
       key_id: keyId,
       document_hash_b64: lastHash,
       hash_algorithm: document.getElementById('sign-algo').value,
-      signer_id: document.getElementById('sign-signer-id').value || undefined,
     };
-    const metaRaw = document.getElementById('sign-metadata').value.trim();
-    if (metaRaw) { try { body.metadata = JSON.parse(metaRaw); } catch { } }
-    const res = await apiFetch('/v1/sign/hash/sign', { method: 'POST', body: JSON.stringify(body) });
+    const sid = document.getElementById('sign-signer-id').value.trim();
+    if (sid) body.signer_id = sid;
+    const meta = document.getElementById('sign-meta').value.trim();
+    if (meta) { try { body.metadata = JSON.parse(meta); } catch {} }
+    const res = await apiFetch('/v1/sign/hash/sign', { method:'POST', body:JSON.stringify(body) });
     const card = document.getElementById('sign-result-card');
     card.style.display = 'block';
-    document.getElementById('sign-result-content').innerHTML = `
-      <div class="alert alert-success">✅ Document signé avec succès</div>
-      <div class="form-group"><label class="form-label">ID de signature</label>
-        <div class="hash-display">${res.signature_id}</div></div>
-      <div class="form-group"><label class="form-label">Signature (Base64)</label>
-        <div class="code-block">${res.signature_b64}</div></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">
-        <div><div class="form-label">Signé le</div><div style="font-size:13px">${new Date(res.signed_at).toLocaleString('fr-FR')}</div></div>
-        <div><div class="form-label">Certificat</div><div style="font-size:13px">${res.certificate_subject || '—'}</div></div>
+    document.getElementById('sign-result-body').innerHTML = `
+      <div class="alert alert-success"><span>✓</span><span>Signature créée avec succès.</span></div>
+      <div class="form-group"><div class="form-label">Identifiant de signature</div>
+        <div class="hash-block">${res.signature_id}</div></div>
+      <div class="form-group"><div class="form-label">Signature (Base64)</div>
+        <div class="code-block">${res.signature_b64 || ''}</div></div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:10px">
+        <div><div class="form-label">Signé le</div><span style="font-size:12.5px">${new Date(res.signed_at).toLocaleString('fr-FR')}</span></div>
+        ${res.certificate_subject ? `<div><div class="form-label">Certificat</div><span style="font-size:12px;font-family:'JetBrains Mono',monospace">${res.certificate_subject}</span></div>` : ''}
       </div>
-      <button class="btn btn-outline btn-sm" style="margin-top:12px" onclick="copyToClipboard('${res.signature_id}')">📋 Copier l'ID</button>
-    `;
+      <div style="margin-top:14px">
+        <button class="btn btn-outline btn-sm" onclick="copyTxt('${res.signature_id}')">Copier l'ID</button>
+      </div>`;
   } catch (e) {
     document.getElementById('sign-result-card').style.display = 'block';
-    document.getElementById('sign-result-content').innerHTML = `<div class="alert alert-danger">❌ Erreur : ${e.message}</div>`;
+    document.getElementById('sign-result-body').innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
   } finally {
-    btn.innerHTML = '🔐 Signer (hash uniquement)';
+    btn.textContent = 'Signer le document';
     btn.disabled = false;
   }
 }
 
-// =====================
+// ═══════════════════════════════════════════════
 // VERIFY
-// =====================
+// ═══════════════════════════════════════════════
 async function doVerify() {
-  const sigId = document.getElementById('verify-sig-id').value.trim();
-  if (!sigId) return;
-  const el = document.getElementById('verify-result');
-  el.innerHTML = '<span class="spinner"></span>';
-  try {
-    const res = await apiFetch('/v1/audit/logs/' + encodeURIComponent(sigId));
-    el.innerHTML = `
-      <div class="alert alert-success">✅ Signature trouvée</div>
-      <div class="code-block">${JSON.stringify(res, null, 2)}</div>
-    `;
-  } catch (e) {
-    el.innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
-  }
-}
-
-async function loadSignatures() {
-  const el = document.getElementById('sigs-list');
-  el.innerHTML = '<span class="spinner"></span>';
-  try {
-    const res = await apiFetch('/v1/audit/logs?limit=20');
-    if (!res.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>Aucune signature</p></div>'; return; }
-    el.innerHTML = res.map(s => `
-      <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-        <span class="badge badge-info">${s.event_type}</span>
-        <span style="font-size:12px;font-family:monospace;color:var(--text2)">${(s.signature_id||'').slice(0,20)}...</span>
-        <span style="font-size:11px;color:var(--text3);margin-left:auto">${new Date(s.timestamp).toLocaleString('fr-FR')}</span>
-        <button class="btn btn-outline btn-sm" onclick="showSigDetail('${s.signature_id}')">Détail</button>
-      </div>
-    `).join('');
-  } catch (e) {
-    el.innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
-  }
-}
-
-async function showSigDetail(id) {
-  const modal = document.getElementById('modal-sig-detail');
-  document.getElementById('modal-sig-detail-body').innerHTML = '<span class="spinner"></span>';
-  modal.classList.add('open');
+  const id = document.getElementById('v-id').value.trim();
+  if (!id) return;
+  const el = document.getElementById('v-result');
+  el.innerHTML = '<span style="color:var(--muted);font-size:12.5px">Recherche…</span>';
   try {
     const res = await apiFetch('/v1/audit/logs/' + encodeURIComponent(id));
-    document.getElementById('modal-sig-detail-body').innerHTML = `<div class="code-block">${JSON.stringify(res, null, 2)}</div>`;
+    el.innerHTML = `<div class="alert alert-success"><span>✓</span><span>Signature trouvée</span></div><div class="code-block">${JSON.stringify(res, null, 2)}</div>`;
   } catch (e) {
-    document.getElementById('modal-sig-detail-body').innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
+    el.innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
   }
 }
 
-// =====================
+async function loadSigs() {
+  const el = document.getElementById('sigs-list');
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px">Chargement…</div>';
+  try {
+    const logs = await apiFetch('/v1/audit/logs?limit=20');
+    if (!logs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Aucune signature</p></div>'; return; }
+    el.innerHTML = logs.map(l => `
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+        <span class="badge badge-accent" style="font-size:10px">${l.event_type}</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.signature_id||'—'}</span>
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">${new Date(l.timestamp).toLocaleDateString('fr-FR')}</span>
+        <button class="btn btn-ghost btn-xs" onclick="showSigModal('${l.signature_id||''}')">→</button>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
+  }
+}
+
+async function showSigModal(id) {
+  if (!id) return;
+  document.getElementById('modal-sig-body').innerHTML = '<div style="color:var(--muted);font-size:12px">Chargement…</div>';
+  document.getElementById('modal-sig').classList.add('open');
+  try {
+    const res = await apiFetch('/v1/audit/logs/' + encodeURIComponent(id));
+    document.getElementById('modal-sig-body').innerHTML = `<div class="code-block">${JSON.stringify(res, null, 2)}</div>`;
+  } catch (e) {
+    document.getElementById('modal-sig-body').innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════
 // WORKFLOWS
-// =====================
+// ═══════════════════════════════════════════════
 async function loadWorkflows() {
-  const el = document.getElementById('workflows-list');
-  el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div><p>Chargement...</p></div>';
+  const el = document.getElementById('wf-list');
   try {
     const wfs = await apiFetch('/v1/workflows/');
     const active = wfs.filter(w => w.status !== 'completed' && w.status !== 'cancelled').length;
     document.getElementById('wf-badge').textContent = active;
-    if (!wfs.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div><p>Aucun workflow. <a href="#" onclick="navigate(\'workflow-create\')">Créer le premier</a></p></div>'; return; }
+    if (!wfs.length) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Aucun workflow. <a href="#" onclick="navigate(\'workflow-create\')" style="color:var(--accent)">Créer le premier</a></p></div>';
+      return;
+    }
     el.innerHTML = wfs.map(wf => {
       const signers = wf.signers || [];
       const done = signers.filter(s => s.signed_at).length;
       const pct = signers.length ? Math.round(done/signers.length*100) : 0;
+      const badgeCls = {completed:'badge-success',pending:'badge-warn',in_progress:'badge-accent',cancelled:'badge-neutral'}[wf.status]||'badge-neutral';
       return `
-        <div class="card" style="margin-bottom:12px">
-          <div class="card-header">
-            <div>
-              <div style="font-weight:600;margin-bottom:2px">${wf.name || wf.workflow_id}</div>
-              <div style="font-size:11px;color:var(--text3)">${wf.workflow_id} · Créé le ${new Date(wf.created_at).toLocaleDateString('fr-FR')}</div>
-            </div>
-            <span class="badge ${statusBadge(wf.status)}">${wf.status}</span>
+      <div class="wf-card">
+        <div class="wf-card-head">
+          <div style="flex:1">
+            <div style="font-weight:600;font-size:13px;margin-bottom:3px">${wf.name||wf.workflow_id}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">${wf.workflow_id}</div>
           </div>
-          <div class="card-body">
-            <div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
-              <span class="chip">🔀 ${wf.mode}</span>
-              <span class="chip">👥 ${done}/${signers.length} signataires</span>
-              ${wf.deadline ? `<span class="chip">📅 ${new Date(wf.deadline).toLocaleDateString('fr-FR')}</span>` : ''}
-            </div>
-            <div class="progress" style="margin-bottom:10px"><div class="progress-bar" style="width:${pct}%"></div></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              ${signers.map(s => `
-                <div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--bg3);border-radius:6px;font-size:12px">
-                  <span>${s.signed_at ? '✅' : '⏳'}</span>
-                  <span>${s.signer_id}</span>
-                  ${s.order !== undefined ? `<span class="badge badge-neutral">#${s.order}</span>` : ''}
-                </div>`).join('')}
-            </div>
-            ${wf.status === 'pending' || wf.status === 'in_progress' ? `
-              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px">
-                <button class="btn btn-danger btn-sm" onclick="cancelWorkflow('${wf.workflow_id}')">❌ Annuler</button>
-              </div>` : ''}
-          </div>
+          <span class="badge ${badgeCls}">${wf.status}</span>
+          <span class="chip" style="margin-left:8px">${wf.mode}</span>
         </div>
-      `;
+        <div class="wf-card-body">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div class="progress" style="flex:1"><div class="progress-bar" style="width:${pct}%"></div></div>
+            <span style="font-size:11.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums">${done} / ${signers.length}</span>
+          </div>
+          ${signers.map(s => `
+            <div class="wf-signer-row">
+              <span style="color:${s.signed_at?'var(--success)':'var(--muted)'}">${s.signed_at?'✓':'◌'}</span>
+              <span style="font-weight:500">${s.signer_id}</span>
+              ${s.order!==undefined?`<span class="chip" style="font-size:10px">#${s.order}</span>`:''}
+              ${s.signed_at?`<span style="margin-left:auto;font-size:11px;color:var(--muted)">${new Date(s.signed_at).toLocaleDateString('fr-FR')}</span>`:''}
+            </div>`).join('')}
+          ${wf.status === 'pending' || wf.status === 'in_progress' ? `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+              <button class="btn btn-danger btn-xs" onclick="cancelWF('${wf.workflow_id}')">Annuler</button>
+            </div>` : ''}
+        </div>
+      </div>`;
     }).join('');
   } catch (e) {
-    el.innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
+    el.innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
   }
 }
 
-function statusBadge(s) {
-  const m = { completed:'badge-success', pending:'badge-warning', in_progress:'badge-info', cancelled:'badge-danger' };
-  return m[s] || 'badge-neutral';
-}
-
-async function cancelWorkflow(id) {
+async function cancelWF(id) {
   if (!confirm('Annuler ce workflow ?')) return;
-  try {
-    await apiFetch('/v1/workflows/' + id, { method: 'DELETE' });
-    loadWorkflows();
-  } catch (e) { alert('Erreur: ' + e.message); }
+  try { await apiFetch('/v1/workflows/'+id, {method:'DELETE'}); loadWorkflows(); }
+  catch (e) { alert(e.message); }
 }
 
 // Workflow create
-function initWorkflowCreate() {
+function initWFCreate() {
   signerRows = [];
-  document.getElementById('signers-list').innerHTML = '';
+  document.getElementById('wf-signers').innerHTML = '';
   addSignerRow();
-  updateWfPreview();
+  renderWFPreview();
+  document.getElementById('wf-result').innerHTML = '';
 }
 
 function addSignerRow() {
   const id = Date.now();
   signerRows.push(id);
   const div = document.createElement('div');
-  div.id = 'signer-row-' + id;
-  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap';
+  div.id = 'sr-' + id;
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px';
   div.innerHTML = `
-    <input class="form-control" placeholder="ID signataire" style="flex:1;min-width:120px" id="sr-id-${id}">
-    <input class="form-control" placeholder="Email" style="flex:1;min-width:140px" id="sr-email-${id}">
-    <input class="form-control" placeholder="Ordre" type="number" style="width:70px" id="sr-order-${id}" value="${signerRows.length}">
-    <button class="btn btn-danger btn-sm" onclick="removeSignerRow(${id})">✕</button>
-  `;
-  document.getElementById('signers-list').appendChild(div);
-  updateWfPreview();
+    <input class="form-control" placeholder="ID signataire" id="sr-id-${id}" style="flex:1" oninput="renderWFPreview()">
+    <input class="form-control" placeholder="Email" id="sr-em-${id}" style="flex:1">
+    <input class="form-control" type="number" placeholder="#" id="sr-or-${id}" style="width:54px" value="${signerRows.length}" oninput="renderWFPreview()">
+    <button class="btn btn-ghost btn-xs" onclick="rmSignerRow(${id})">✕</button>`;
+  document.getElementById('wf-signers').appendChild(div);
+  renderWFPreview();
 }
 
-function removeSignerRow(id) {
+function rmSignerRow(id) {
   signerRows = signerRows.filter(r => r !== id);
-  document.getElementById('signer-row-' + id)?.remove();
-  updateWfPreview();
+  document.getElementById('sr-' + id)?.remove();
+  renderWFPreview();
 }
 
-function updateWfPreview() {
+function renderWFPreview() {
   const mode = document.getElementById('wf-mode')?.value;
   const rows = signerRows.map(id => ({
-    signer_id: document.getElementById('sr-id-' + id)?.value || '—',
-    order: parseInt(document.getElementById('sr-order-' + id)?.value) || 0
+    id: document.getElementById('sr-id-' + id)?.value || '—',
+    order: parseInt(document.getElementById('sr-or-' + id)?.value) || 0
   })).sort((a,b) => a.order - b.order);
   const el = document.getElementById('wf-preview');
-  if (!rows.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">👥</div><p>Ajoutez des signataires</p></div>'; return; }
-  el.innerHTML = '<ul class="timeline">' + rows.map((r,i) => `
-    <li class="timeline-item">
-      <div class="timeline-dot pending">${i+1}</div>
-      <div class="timeline-content">
-        <div class="timeline-title">${r.signer_id || '(vide)'}</div>
-        <div class="timeline-meta">Ordre ${r.order} · ${mode}</div>
+  if (!rows.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">⊕</div><p>Ajoutez des signataires</p></div>'; return; }
+  el.innerHTML = '<ul class="timeline">' + rows.map((r, i) => `
+    <li class="tl-item">
+      <div class="tl-dot active">${i+1}</div>
+      <div class="tl-body">
+        <div class="tl-title">${r.id}</div>
+        <div class="tl-meta">Ordre ${r.order} · ${mode}</div>
       </div>
     </li>`).join('') + '</ul>';
 }
 
 function pasteLastHash() {
   if (lastHash) document.getElementById('wf-hash').value = lastHash;
-  else alert('Aucun hash disponible. Allez dans "Signer un document" pour en calculer un.');
+  else alert('Aucun hash disponible. Calculez-en un depuis "Signer un document".');
 }
 
 async function createWorkflow() {
   const name = document.getElementById('wf-name').value.trim();
   const hash = document.getElementById('wf-hash').value.trim();
-  if (!name || !hash) { alert('Nom et hash sont requis'); return; }
+  if (!name || !hash) { alert('Intitulé et empreinte requis'); return; }
   const signers = signerRows.map(id => ({
-    signer_id: document.getElementById('sr-id-' + id)?.value,
-    email: document.getElementById('sr-email-' + id)?.value,
-    order: parseInt(document.getElementById('sr-order-' + id)?.value) || 0
+    signer_id: document.getElementById('sr-id-'+id)?.value,
+    email: document.getElementById('sr-em-'+id)?.value,
+    order: parseInt(document.getElementById('sr-or-'+id)?.value)||0
   })).filter(s => s.signer_id);
   if (!signers.length) { alert('Ajoutez au moins un signataire'); return; }
-  const body = {
-    name,
-    description: document.getElementById('wf-desc').value,
-    document_hash_b64: hash,
-    mode: document.getElementById('wf-mode').value,
-    signers,
-    deadline: document.getElementById('wf-deadline').value || undefined
-  };
   try {
-    const res = await apiFetch('/v1/workflows/create', { method: 'POST', body: JSON.stringify(body) });
-    document.getElementById('wf-create-result').innerHTML = `<div class="alert alert-success">✅ Workflow créé : ${res.workflow_id}</div>`;
-    setTimeout(() => navigate('workflows'), 1500);
+    const res = await apiFetch('/v1/workflows/create', {method:'POST', body:JSON.stringify({
+      name, description: document.getElementById('wf-desc').value,
+      document_hash_b64: hash, mode: document.getElementById('wf-mode').value,
+      signers, deadline: document.getElementById('wf-deadline').value || undefined
+    })});
+    document.getElementById('wf-result').innerHTML = `<div class="alert alert-success"><span>✓</span><span>Workflow créé : <strong>${res.workflow_id}</strong></span></div>`;
+    setTimeout(() => navigate('workflows'), 1600);
   } catch (e) {
-    document.getElementById('wf-create-result').innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
+    document.getElementById('wf-result').innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
   }
 }
 
-// =====================
+// ═══════════════════════════════════════════════
 // USERS
-// =====================
+// ═══════════════════════════════════════════════
 async function loadUsers() {
-  const tbody = document.getElementById('users-table-body');
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)"><span class="spinner"></span></td></tr>';
+  const tb = document.getElementById('users-tbody');
   try {
     const users = await apiFetch('/v1/users/');
-    if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text3)">Aucun utilisateur</td></tr>'; return; }
-    tbody.innerHTML = users.map(u => `
+    if (!users.length) { tb.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--muted)">Aucun utilisateur</td></tr>'; return; }
+    tb.innerHTML = users.map(u => `
       <tr>
-        <td style="font-family:monospace;font-size:12px">${u.user_id}</td>
-        <td>${u.full_name || '—'}</td>
-        <td style="color:var(--text2)">${u.email || '—'}</td>
-        <td><span class="badge ${u.role==='admin'?'badge-danger':u.role==='auditor'?'badge-warning':'badge-info'}">${u.role}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${u.user_id}</td>
+        <td style="font-weight:500">${u.full_name||'—'}</td>
+        <td style="color:var(--muted)">${u.email||'—'}</td>
+        <td><span class="badge ${u.role==='admin'?'badge-danger':u.role==='auditor'?'badge-warn':'badge-accent'}">${u.role}</span></td>
         <td><span class="badge ${u.is_active?'badge-success':'badge-neutral'}">${u.is_active?'Actif':'Inactif'}</span></td>
-        <td style="font-size:11px;color:var(--text3)">${u.certificate_id || '—'}</td>
-        <td>
-          ${u.is_active ? `<button class="btn btn-danger btn-sm" onclick="deactivateUser('${u.user_id}')">Désactiver</button>` : ''}
-        </td>
-      </tr>
-    `).join('');
+        <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)">${u.certificate_id||'—'}</td>
+        <td>${u.is_active?`<button class="btn btn-danger btn-xs" onclick="deactivateUser('${u.user_id}')">Désactiver</button>`:''}</td>
+      </tr>`).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="alert alert-danger">❌ ${e.message}</div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="7"><div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div></td></tr>`;
   }
 }
 
-function openUserModal() {
-  document.getElementById('modal-user').classList.add('open');
-}
+function openUserModal() { document.getElementById('modal-user').classList.add('open'); }
 
 async function createUser() {
-  const body = {
-    user_id: document.getElementById('u-id').value.trim(),
-    full_name: document.getElementById('u-name').value.trim(),
-    email: document.getElementById('u-email').value.trim(),
-    role: document.getElementById('u-role').value,
-    department: document.getElementById('u-dept').value.trim() || undefined
-  };
-  if (!body.user_id || !body.full_name || !body.email) { alert('ID, nom et email sont requis'); return; }
-  try {
-    await apiFetch('/v1/users/', { method: 'POST', body: JSON.stringify(body) });
-    closeModal('modal-user');
-    loadUsers();
-  } catch (e) { alert('Erreur: ' + e.message); }
+  const body = { user_id: document.getElementById('u-id').value.trim(), full_name: document.getElementById('u-name').value.trim(), email: document.getElementById('u-email').value.trim(), role: document.getElementById('u-role').value, department: document.getElementById('u-dept').value.trim() || undefined };
+  if (!body.user_id || !body.full_name || !body.email) { alert('ID, nom et email requis'); return; }
+  try { await apiFetch('/v1/users/', {method:'POST', body:JSON.stringify(body)}); closeModal('modal-user'); loadUsers(); }
+  catch (e) { alert(e.message); }
 }
 
 async function deactivateUser(id) {
   if (!confirm('Désactiver cet utilisateur ?')) return;
-  try {
-    await apiFetch('/v1/users/' + id + '/deactivate', { method: 'POST' });
-    loadUsers();
-  } catch (e) { alert('Erreur: ' + e.message); }
+  try { await apiFetch('/v1/users/'+id+'/deactivate', {method:'POST'}); loadUsers(); }
+  catch (e) { alert(e.message); }
 }
 
-// =====================
+// ═══════════════════════════════════════════════
 // AUDIT
-// =====================
+// ═══════════════════════════════════════════════
 async function loadAudit() {
-  const tbody = document.getElementById('audit-table-body');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px"><span class="spinner"></span></td></tr>';
+  const tb = document.getElementById('audit-tbody');
   try {
-    const params = new URLSearchParams({ limit: 50 });
-    const t = document.getElementById('audit-filter-type').value;
-    const s = document.getElementById('audit-filter-signer').value.trim();
-    if (t) params.set('event_type', t);
-    if (s) params.set('signer_id', s);
-    const [logs, stats] = await Promise.all([
-      apiFetch('/v1/audit/logs?' + params),
-      apiFetch('/v1/audit/stats')
-    ]);
-    const total = Object.values(stats.by_event_type || {}).reduce((a,b) => a+b, 0);
-    document.getElementById('as-total').textContent = total;
-    document.getElementById('as-hash').textContent = stats.by_event_type?.hash_signed || 0;
-    document.getElementById('as-keys').textContent = stats.by_event_type?.key_generated || 0;
-    if (!logs.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text3)">Aucun événement</td></tr>'; return; }
-    tbody.innerHTML = logs.map(l => `
+    const p = new URLSearchParams({limit:50});
+    const t = document.getElementById('af-type').value;
+    const s = document.getElementById('af-signer').value.trim();
+    if (t) p.set('event_type', t);
+    if (s) p.set('signer_id', s);
+    const [logs, stats] = await Promise.all([apiFetch('/v1/audit/logs?'+p), apiFetch('/v1/audit/stats')]);
+    const total = Object.values(stats.by_event_type||{}).reduce((a,b)=>a+b,0);
+    document.getElementById('a-total').textContent = total;
+    document.getElementById('a-hash').textContent  = stats.by_event_type?.hash_signed ?? 0;
+    document.getElementById('a-keys').textContent  = stats.by_event_type?.key_generated ?? 0;
+    if (!logs.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:28px;color:var(--muted)">Aucun événement</td></tr>'; return; }
+    tb.innerHTML = logs.map(l => `
       <tr>
-        <td style="font-size:12px;white-space:nowrap">${new Date(l.timestamp).toLocaleString('fr-FR')}</td>
-        <td><span class="badge badge-info">${l.event_type}</span></td>
-        <td style="font-family:monospace;font-size:11px">${(l.signature_id||'—').slice(0,24)}${l.signature_id&&l.signature_id.length>24?'…':''}</td>
-        <td>${l.signer_id || '—'}</td>
-        <td>${l.algorithm || '—'}</td>
-        <td><button class="btn btn-outline btn-sm" onclick="showSigDetail('${l.signature_id||''}')">🔍</button></td>
-      </tr>
-    `).join('');
+        <td style="font-family:'JetBrains Mono',monospace;font-size:11px;white-space:nowrap">${new Date(l.timestamp).toLocaleString('fr-FR')}</td>
+        <td><span class="badge badge-accent" style="font-size:10px">${l.event_type}</span></td>
+        <td style="font-family:'JetBrains Mono',monospace;font-size:10.5px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(l.signature_id||'—').slice(0,28)}${l.signature_id&&l.signature_id.length>28?'…':''}</td>
+        <td>${l.signer_id||'—'}</td>
+        <td>${l.algorithm||'—'}</td>
+        <td><button class="btn btn-ghost btn-xs" onclick="showSigModal('${l.signature_id||''}')">→</button></td>
+      </tr>`).join('');
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="alert alert-danger">❌ ${e.message}</div></td></tr>`;
+    tb.innerHTML = `<tr><td colspan="6"><div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div></td></tr>`;
   }
 }
 
-function exportAudit() {
+function exportCSV() {
   const rows = [];
-  document.querySelectorAll('#audit-table-body tr').forEach(tr => {
+  document.querySelectorAll('#audit-tbody tr').forEach(tr => {
     const cells = [...tr.querySelectorAll('td')].map(td => '"' + td.textContent.trim().replace(/"/g,'""') + '"');
-    if (cells.length > 1) rows.push(cells.join(','));
+    if (cells.length > 1) rows.push(cells.slice(0,-1).join(','));
   });
   if (!rows.length) { alert('Aucune donnée à exporter'); return; }
-  const csv = 'Horodatage,Type,ID Signature,Signataire,Algorithme,Détail\n' + rows.join('\n');
+  const csv = 'Horodatage,Type,ID Signature,Signataire,Algorithme\n' + rows.join('\n');
   const a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = 'audit-' + new Date().toISOString().slice(0,10) + '.csv';
   a.click();
 }
 
-// =====================
-// CERTS
-// =====================
-async function loadCerts() {
-  const tbody = document.getElementById('certs-table-body');
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text3)">Connexion EJBCA requise pour lister les certificats.</td></tr>';
-}
-
-async function generateCert() {
-  document.getElementById('cert-result').innerHTML = `<div class="alert alert-info">ℹ️ La génération de certificats nécessite l'API EJBCA REST (v1/certificate/pkcs10enroll). Activez l'API REST dans adminweb → System Configuration → Protocol Configuration.</div>`;
-}
-
-// =====================
+// ═══════════════════════════════════════════════
 // KEYS
-// =====================
-document.getElementById('key-algo').addEventListener('change', function() {
-  document.getElementById('key-size-group').style.display = this.value === 'RSA' ? '' : 'none';
-  document.getElementById('key-curve-group').style.display = this.value === 'EC' ? '' : 'none';
+// ═══════════════════════════════════════════════
+document.getElementById('k-algo').addEventListener('change', function() {
+  document.getElementById('k-rsa-group').style.display = this.value === 'RSA' ? '' : 'none';
+  document.getElementById('k-ec-group').style.display  = this.value === 'EC'  ? '' : 'none';
 });
 
-async function generateKey() {
-  const btn = document.getElementById('gen-key-btn');
-  btn.innerHTML = '<span class="spinner"></span> Génération...';
+async function genKey() {
+  const btn = document.getElementById('k-btn');
+  btn.innerHTML = '<span class="spinner"></span> Génération…';
   btn.disabled = true;
   try {
-    const algo = document.getElementById('key-algo').value;
+    const algo = document.getElementById('k-algo').value;
     const body = { algorithm: algo };
-    if (algo === 'RSA') body.key_size = parseInt(document.getElementById('key-size').value);
-    else body.curve = document.getElementById('key-curve').value;
-    const res = await apiFetch('/v1/keys/generate', { method: 'POST', body: JSON.stringify(body) });
+    if (algo === 'RSA') body.key_size = parseInt(document.getElementById('k-size').value);
+    else body.curve = document.getElementById('k-curve').value;
+    const res = await apiFetch('/v1/keys/generate', {method:'POST', body:JSON.stringify(body)});
     keysList.push(res);
-    document.getElementById('key-result').innerHTML = `
-      <div class="alert alert-success">✅ Clé générée</div>
-      <div class="form-label">ID de la clé</div>
-      <div class="hash-display">${res.key_id}</div>
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+    document.getElementById('k-result').innerHTML = `
+      <div class="alert alert-success"><span>✓</span><span>Clé générée</span></div>
+      <div class="form-label" style="margin-bottom:4px">Identifiant</div>
+      <div class="hash-block">${res.key_id}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
         <span class="chip">${res.algorithm}</span>
-        ${res.key_size ? `<span class="chip">${res.key_size} bits</span>` : ''}
-        ${res.curve ? `<span class="chip">${res.curve}</span>` : ''}
-        <span class="chip ${res.storage==='vault'?'':''}">💾 ${res.storage}</span>
+        ${res.key_size?`<span class="chip">${res.key_size} bits</span>`:''}
+        ${res.curve?`<span class="chip">${res.curve}</span>`:''}
+        <span class="chip">💾 ${res.storage}</span>
       </div>
-      <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="copyToClipboard('${res.key_id}')">📋 Copier l'ID</button>
-    `;
+      <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="copyTxt('${res.key_id}')">Copier l'ID</button>`;
     renderKeysList();
   } catch (e) {
-    document.getElementById('key-result').innerHTML = `<div class="alert alert-danger">❌ ${e.message}</div>`;
+    document.getElementById('k-result').innerHTML = `<div class="alert alert-danger"><span>⚠</span><span>${e.message}</span></div>`;
   } finally {
-    btn.innerHTML = '🔑 Générer';
-    btn.disabled = false;
+    btn.textContent = 'Générer'; btn.disabled = false;
   }
 }
 
 function renderKeysList() {
-  const el = document.getElementById('keys-list');
-  if (!keysList.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><p>Générez votre première clé</p></div>'; return; }
+  const el = document.getElementById('k-list');
+  if (!keysList.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">◌</div><p>Aucune clé</p></div>'; return; }
   el.innerHTML = keysList.map(k => `
-    <div style="padding:10px;background:var(--bg3);border-radius:8px;margin-bottom:8px">
-      <div style="font-family:monospace;font-size:11px;color:var(--accent2);margin-bottom:6px">${k.key_id}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div style="padding:12px;background:var(--ground);border-radius:var(--radius);margin-bottom:8px;border:1px solid var(--border)">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--accent);margin-bottom:6px;word-break:break-all">${k.key_id}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <span class="chip">${k.algorithm}</span>
-        ${k.key_size ? `<span class="chip">${k.key_size}b</span>` : ''}
-        ${k.curve ? `<span class="chip">${k.curve}</span>` : ''}
+        ${k.key_size?`<span class="chip">${k.key_size}b</span>`:''}
+        ${k.curve?`<span class="chip">${k.curve}</span>`:''}
         <span class="chip">💾 ${k.storage}</span>
       </div>
-      <button class="btn btn-outline btn-sm" style="margin-top:8px" onclick="copyToClipboard('${k.key_id}')">📋 Utiliser</button>
-    </div>
-  `).join('');
+      <button class="btn btn-outline btn-xs" onclick="copyTxt('${k.key_id}')">Copier l'ID</button>
+    </div>`).join('');
 }
 
-// =====================
+// ═══════════════════════════════════════════════
 // UTILS
-// =====================
-function formatSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
-  return (bytes/1024/1024).toFixed(1) + ' MB';
+// ═══════════════════════════════════════════════
+function fmtSize(b) {
+  if (b < 1024) return b + ' o';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' Ko';
+  return (b/1048576).toFixed(1) + ' Mo';
 }
+function copyTxt(t) { navigator.clipboard.writeText(t).catch(() => prompt('Copiez manuellement :', t)); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
 
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    // brief visual feedback — show nothing, just copy
-  }).catch(() => { prompt('Copiez manuellement :', text); });
-}
-
-function closeModal(id) {
-  document.getElementById(id).classList.remove('open');
-}
-
-// Close modal on overlay click
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
-});
-
-// =====================
-// INIT
-// =====================
-checkApi();
-setInterval(checkApi, 30000);
+// ── INIT
 loadDashboard();
 </script>
-</body>
-</html>
