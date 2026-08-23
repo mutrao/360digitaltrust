@@ -2,6 +2,7 @@
 # 360DigitalTrust — Stack PKI Microservices
 # EJBCA CE | SoftHSM2 | PostgreSQL | Redis | Traefik
 # Signature API (PAdES / XAdES / CAdES / TSA / OCSP)
+# Frontend SPA (Nginx + Web Crypto hash-only signing)
 #
 # Vault désactivé par défaut — activer avec :
 #   docker compose --profile vault up -d
