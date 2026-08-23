@@ -1,19 +1,18 @@
 # =============================================================
 # 360DigitalTrust — Stack PKI Microservices
-# EJBCA CE | SoftHSM2 | PostgreSQL | Redis | Vault | Traefik
-# Signature API (PAdES/XAdES/CAdES) | CRL Publisher
+# EJBCA CE | SoftHSM2 | PostgreSQL | Redis | Traefik
+# Signature API (PAdES / XAdES / CAdES / TSA / OCSP)
+#
+# Vault désactivé par défaut — activer avec :
+#   docker compose --profile vault up -d
 # =============================================================
-version: "3.9"
 
 networks:
   pki-internal:
     driver: bridge
-    internal: true        # isolé d'Internet — accès uniquement inter-services
-  pki-dmz:
-    driver: bridge        # exposé via Traefik
-  vault-net:
-    driver: bridge
     internal: true
+  pki-dmz:
+    driver: bridge
 
 volumes:
   ejbca-data:
@@ -21,15 +20,14 @@ volumes:
   softhsm-tokens:
   redis-data:
   vault-data:
-  vault-logs:
   traefik-certs:
   crl-files:
 
 services:
 
-  # ---------------------------------------------------------
-  # 1. BASE DE DONNÉES EJBCA — PostgreSQL 16
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
+  # 1. PostgreSQL 16 — Base de données EJBCA
+  # -----------------------------------------------------------
   pki-db:
     image: postgres:16-alpine
     container_name: pki-db
@@ -50,15 +48,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: 512M
 
-  # ---------------------------------------------------------
-  # 2. SOFTHSM2 — Simulation HSM PKCS#11 (développement)
-  # Remplacé par Thales Luna / Utimaco en production
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
+  # 2. SoftHSM2 — Simulation HSM PKCS#11
+  # En production : remplacer par Thales Luna / Utimaco
+  # -----------------------------------------------------------
   pki-hsm:
     build:
       context: ./pki/softhsm
@@ -78,11 +72,11 @@ services:
       retries: 5
       start_period: 15s
 
-  # ---------------------------------------------------------
-  # 3. EJBCA CE 8.x — Moteur PKI (CA + OCSP + TSA + CRL)
-  # Port 8443 : HTTPS admin, REST API
-  # Port 8080 : HTTP CRL/OCSP public
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
+  # 3. EJBCA CE 8.x — Moteur PKI
+  # 8443 : HTTPS admin + REST API
+  # 8009 : HTTP CRL + OCSP
+  # -----------------------------------------------------------
   pki-ca:
     image: ${EJBCA_IMAGE}
     container_name: pki-ca
@@ -120,16 +114,10 @@ services:
       timeout: 10s
       retries: 20
       start_period: 180s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 1G
 
-  # ---------------------------------------------------------
-  # 4. CRL PUBLISHER — Distribution HTTP des révocations
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
+  # 4. Nginx — Distribution HTTP des CRL
+  # -----------------------------------------------------------
   crl-publisher:
     image: nginx:alpine
     container_name: crl-publisher
@@ -139,15 +127,10 @@ services:
       - ./gateway/nginx/crl.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - pki-dmz
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.crl.rule=Host(`crl.${DOMAIN}`) || PathPrefix(`/crl`)"
-      - "traefik.http.routers.crl.entrypoints=web"
-      - "traefik.http.services.crl.loadbalancer.server.port=80"
 
-  # ---------------------------------------------------------
-  # 5. REDIS — Cache OCSP + CRL (réponses signées)
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
+  # 5. Redis 7 — Cache OCSP / CRL
+  # -----------------------------------------------------------
   cache:
     image: redis:7-alpine
     container_name: pki-cache
@@ -168,48 +151,11 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          memory: 320M
 
-  # ---------------------------------------------------------
-  # 6. VAULT — Gestion des secrets et credentials PKI
-  # Mode dev local uniquement — prod : Vault HA cluster
-  # ---------------------------------------------------------
-  vault:
-    image: hashicorp/vault:1.16
-    container_name: pki-vault
-    restart: unless-stopped
-    cap_add:
-      - IPC_LOCK
-    environment:
-      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
-      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
-    command: server -dev
-    volumes:
-      - vault-data:/vault/data
-      - vault-logs:/vault/logs
-      - ./vault/config:/vault/config:ro
-      - ./vault/policies:/vault/policies:ro
-    networks:
-      - vault-net
-      - pki-internal
-    healthcheck:
-      test: ["CMD", "vault", "status", "-address=http://127.0.0.1:8200"]
-      interval: 15s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-
-  # ---------------------------------------------------------
-  # 7. SIGNATURE API — Microservice FastAPI
-  # PAdES | XAdES | CAdES | Horodatage RFC 3161
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
+  # 6. Signature API — FastAPI Python
+  # PAdES | XAdES | CAdES | TSA | OCSP
+  # -----------------------------------------------------------
   signature-api:
     build:
       context: ./signature-api
@@ -221,19 +167,18 @@ services:
         condition: service_healthy
       cache:
         condition: service_healthy
-      vault:
-        condition: service_healthy
     environment:
       ENV: ${ENV}
       SECRET_KEY: ${SIG_API_SECRET_KEY}
       EJBCA_REST_URL: ${EJBCA_REST_API_URL}
       EJBCA_ADMIN_PASSWORD: ${EJBCA_ADMIN_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@cache:6379/0
-      VAULT_ADDR: ${VAULT_ADDR}
-      VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID}
+      # Vault désactivé — activer si le profil vault est utilisé
+      VAULT_ADDR: ""
+      VAULT_TOKEN: ""
       CRL_BASE_URL: http://crl.${DOMAIN}/crl
       OCSP_URL: http://pki-ca:8009/ejbca/publicweb/status/ocsp
-      CA_VERIFY_SSL: "false"   # true en production avec vrai cert
+      CA_VERIFY_SSL: "false"
     volumes:
       - crl-files:/app/crl-cache:ro
     ports:
@@ -247,21 +192,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.sig-api.rule=Host(`api.${DOMAIN}`)"
-      - "traefik.http.routers.sig-api.entrypoints=websecure"
-      - "traefik.http.routers.sig-api.tls=true"
-      - "traefik.http.services.sig-api.loadbalancer.server.port=8000"
-    deploy:
-      resources:
-        limits:
-          memory: 512M
 
-  # ---------------------------------------------------------
-  # 8. TRAEFIK v3 — Reverse Proxy / Edge Gateway
+  # -----------------------------------------------------------
+  # 7. Traefik v3 — Reverse Proxy
   # Dashboard : http://localhost:${TRAEFIK_DASHBOARD_PORT}
-  # ---------------------------------------------------------
+  # -----------------------------------------------------------
   gateway:
     image: traefik:v3.0
     container_name: pki-gateway
@@ -271,13 +206,9 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
-      - "--providers.file.directory=/etc/traefik/dynamic"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--log.level=INFO"
-      - "--accesslog=true"
     ports:
       - "80:80"
       - "443:443"
@@ -285,10 +216,36 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certs:/certs
-      - ./gateway/traefik/dynamic:/etc/traefik/dynamic:ro
     networks:
       - pki-dmz
-    deploy:
-      resources:
-        limits:
-          memory: 128M
+
+  # -----------------------------------------------------------
+  # 8. Vault — DÉSACTIVÉ PAR DÉFAUT
+  # Lancer avec : docker compose --profile vault up -d
+  # Problème connu : OOM sur Mac avec peu de RAM
+  # -----------------------------------------------------------
+  vault:
+    profiles: ["vault"]
+    image: hashicorp/vault:1.16
+    container_name: pki-vault
+    restart: unless-stopped
+    cap_add:
+      - IPC_LOCK
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: ${VAULT_DEV_ROOT_TOKEN_ID}
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_ADDR: http://127.0.0.1:8200
+    command: server -dev -dev-listen-address=0.0.0.0:8200
+    volumes:
+      - vault-data:/vault/data
+      - ./vault/policies:/vault/policies:ro
+    ports:
+      - "8200:8200"
+    networks:
+      - pki-internal
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8200/v1/sys/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s

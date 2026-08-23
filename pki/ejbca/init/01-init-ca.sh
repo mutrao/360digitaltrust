@@ -1,29 +1,38 @@
 #!/bin/bash
 # =============================================================
 # EJBCA — Initialisation de la hiérarchie PKI 360DigitalTrust
-# Script exécuté une seule fois au premier démarrage
-# Crée : Root CA → Sub-CA Signature, TSA, OCSP
+# Exécuter UNE SEULE FOIS après le premier démarrage EJBCA
+# Usage : docker compose exec pki-ca bash /opt/ejbca/init/01-init-ca.sh
 # =============================================================
 set -euo pipefail
 
 EJBCA_CLI="/opt/ejbca/bin/ejbca.sh"
 MARKER="/mnt/persistent/.pki_initialized"
+PIN="${CA_TOKEN_PIN:-changeme_hsm_2026!}"
 
 if [ -f "${MARKER}" ]; then
-  echo "[INIT] PKI déjà initialisée — skip."
+  echo "[INIT] PKI déjà initialisée."
   exit 0
 fi
 
-echo "[INIT] Attente démarrage EJBCA..."
-until curl -skf https://localhost:8443/ejbca/publicweb/healthcheck/ejbcahealth; do
+echo "[INIT] Vérification EJBCA..."
+until curl -skf https://localhost:8443/ejbca/publicweb/healthcheck/ejbcahealth | grep -q ALLOK; do
+  echo "[INIT] Attente EJBCA..."
   sleep 10
 done
+echo "[INIT] EJBCA prêt."
 
-PIN="${CA_TOKEN_PIN:-changeme_hsm_2026!}"
-ADMIN_PWD="${EJBCA_CLI_DEFAULTPASSWORD:-changeme_admin_2026!}"
+# -----------------------------------------------------------
+# Étape 1 : Activer l'API REST
+# -----------------------------------------------------------
+echo "[INIT] Activation de l'API REST..."
+${EJBCA_CLI} config protocols --enable --protocol REST 2>&1 || \
+  echo "[INIT] REST peut-être déjà activé ou non supporté en CLI — activer via adminweb"
 
-# --- 1. Profil de certificat Root CA ---
-echo "[INIT] Création du profil Root CA..."
+# -----------------------------------------------------------
+# Étape 2 : Créer la Root CA (20 ans, RSA 4096)
+# -----------------------------------------------------------
+echo "[INIT] Création Root CA..."
 ${EJBCA_CLI} ca createca \
   --caname "360DT-Root-CA" \
   --dn "CN=360DigitalTrust Root CA,O=360DigitalTrust,C=FR" \
@@ -32,9 +41,11 @@ ${EJBCA_CLI} ca createca \
   --validity "7300" \
   --policy "null" \
   --sigalg "SHA512WithRSA" \
-  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Root CA existe déjà"
+  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Root CA déjà existante"
 
-# --- 2. Sub-CA Signature ---
+# -----------------------------------------------------------
+# Étape 3 : Sub-CA Signature (10 ans, RSA 4096)
+# -----------------------------------------------------------
 echo "[INIT] Création Sub-CA Signature..."
 ${EJBCA_CLI} ca createca \
   --caname "360DT-Sub-Signature-CA" \
@@ -45,9 +56,11 @@ ${EJBCA_CLI} ca createca \
   --policy "null" \
   --sigalg "SHA256WithRSA" \
   --signedby "360DT-Root-CA" \
-  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Sub-CA Signature existe déjà"
+  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Sub-CA Signature déjà existante"
 
-# --- 3. Sub-CA TSA ---
+# -----------------------------------------------------------
+# Étape 4 : Sub-CA TSA (10 ans, RSA 4096)
+# -----------------------------------------------------------
 echo "[INIT] Création Sub-CA TSA..."
 ${EJBCA_CLI} ca createca \
   --caname "360DT-Sub-TSA-CA" \
@@ -58,9 +71,11 @@ ${EJBCA_CLI} ca createca \
   --policy "null" \
   --sigalg "SHA256WithRSA" \
   --signedby "360DT-Root-CA" \
-  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Sub-CA TSA existe déjà"
+  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Sub-CA TSA déjà existante"
 
-# --- 4. Sub-CA OCSP ---
+# -----------------------------------------------------------
+# Étape 5 : Sub-CA OCSP (5 ans, RSA 2048)
+# -----------------------------------------------------------
 echo "[INIT] Création Sub-CA OCSP..."
 ${EJBCA_CLI} ca createca \
   --caname "360DT-Sub-OCSP-CA" \
@@ -71,29 +86,25 @@ ${EJBCA_CLI} ca createca \
   --policy "null" \
   --sigalg "SHA256WithRSA" \
   --signedby "360DT-Root-CA" \
-  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Sub-CA OCSP existe déjà"
+  --tokenpwd "${PIN}" 2>&1 || echo "[INIT] Sub-CA OCSP déjà existante"
 
-# --- 5. Profils de certificats ---
-echo "[INIT] Import des profils de certificats..."
-for profile_file in /opt/ejbca/init/profiles/*.xml; do
-  profile_name=$(basename "${profile_file}" .xml)
-  ${EJBCA_CLI} ca importprofile \
-    --certprofile "/opt/ejbca/init/profiles/${profile_name}.xml" 2>&1 || \
-    echo "[INIT] Profil ${profile_name} déjà importé"
-done
-
-# --- 6. Export des certificats CA publics ---
-echo "[INIT] Export des certificats CA..."
-mkdir -p /mnt/persistent/ca-certs
-for ca in "360DT-Root-CA" "360DT-Sub-Signature-CA" "360DT-Sub-TSA-CA" "360DT-Sub-OCSP-CA"; do
-  ${EJBCA_CLI} ca getcacert \
-    --caname "${ca}" \
-    --cert "/mnt/persistent/ca-certs/${ca}.pem" 2>&1 || true
-done
-
-# --- 7. Publication initiale des CRL ---
-echo "[INIT] Publication initiale des CRL..."
+# -----------------------------------------------------------
+# Étape 6 : Publication initiale des CRL
+# -----------------------------------------------------------
+echo "[INIT] Publication des CRL..."
 ${EJBCA_CLI} ca createcrl --all 2>&1 || true
 
 touch "${MARKER}"
-echo "[INIT] Hiérarchie PKI initialisée avec succès."
+echo ""
+echo "[INIT] ============================================"
+echo "[INIT] Hiérarchie PKI initialisée avec succès !"
+echo "[INIT] ============================================"
+echo "[INIT] CA créées :"
+echo "[INIT]   - 360DT-Root-CA"
+echo "[INIT]   - 360DT-Sub-Signature-CA"
+echo "[INIT]   - 360DT-Sub-TSA-CA"
+echo "[INIT]   - 360DT-Sub-OCSP-CA"
+echo ""
+echo "[INIT] IMPORTANT : activer l'API REST dans l'adminweb si non fait :"
+echo "[INIT] https://localhost:8443/ejbca/adminweb/"
+echo "[INIT] System Configuration → Protocol Configuration → Activer REST"
