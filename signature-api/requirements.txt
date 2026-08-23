@@ -1,36 +1,41 @@
 # Web framework
-fastapi>=0.115.0
-uvicorn[standard]>=0.32.0
-python-multipart>=0.0.12
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
 
-# Cryptographie — versions libres pour laisser pip résoudre les conflits
-cryptography>=42.0.0
-pyOpenSSL>=24.0.0
+# Cryptographie
+cryptography==42.0.8
+pyOpenSSL==24.1.0
 
 # Signature PDF (PAdES)
-pyhanko>=0.36.0
-pyhanko-certvalidator>=0.31.0
+pyhanko==0.24.1
+pyhanko-certvalidator==0.26.3
 
 # Signature XML (XAdES)
-signxml>=4.0.0
-lxml>=5.0.0
+signxml==3.2.2
+lxml==5.2.2
 
 # Signature CMS/CAdES
-asn1crypto>=1.5.0
+asn1crypto==1.5.1
 
-# HTTP client
-httpx>=0.27.0
+# OCSP + CRL
+ocspbuilder==0.14.2
+certbuilder==0.15.2
+
+# HTTP client (appels EJBCA REST API)
+httpx==0.27.0
 
 # Cache Redis
-redis>=5.0.0
+redis==5.0.4
 
 # Vault secrets
-hvac>=2.0.0
+hvac==2.1.0
 
 # Utilitaires
-pydantic>=2.9.0
-pydantic-settings>=2.6.0
-python-dotenv>=1.0.0
-aiofiles>=24.0.0
-structlog>=24.0.0
-prometheus-fastapi-instrumentator>=7.0.0
+python-jose[cryptography]==3.3.0
+pydantic==2.7.1
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+aiofiles==23.2.1
+structlog==24.2.0
+prometheus-fastapi-instrumentator==7.0.0

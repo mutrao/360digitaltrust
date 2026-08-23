@@ -130,7 +130,7 @@ services:
       - pki-dmz
 
   # -----------------------------------------------------------
-  # 5. Redis 7 — Cache OCSP / CRL
+  # 5. Redis 7 — Cache OCSP / CRL / Sessions
   # -----------------------------------------------------------
   cache:
     image: redis:7-alpine
@@ -155,7 +155,7 @@ services:
 
   # -----------------------------------------------------------
   # 6. Signature API — FastAPI Python
-  # PAdES | XAdES | CAdES | TSA | OCSP
+  # PAdES | XAdES | CAdES | TSA | OCSP | Workflows | Audit
   # -----------------------------------------------------------
   signature-api:
     build:
@@ -174,7 +174,6 @@ services:
       EJBCA_REST_URL: ${EJBCA_REST_API_URL}
       EJBCA_ADMIN_PASSWORD: ${EJBCA_ADMIN_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@cache:6379/0
-      # Vault désactivé — activer si le profil vault est utilisé
       VAULT_ADDR: ""
       VAULT_TOKEN: ""
       CRL_BASE_URL: http://crl.${DOMAIN}/crl
@@ -193,10 +192,34 @@ services:
       timeout: 5s
       retries: 5
       start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sig-api.rule=Host(`api.${DOMAIN}`)"
+      - "traefik.http.services.sig-api.loadbalancer.server.port=8000"
 
   # -----------------------------------------------------------
-  # 7. Traefik v3 — Reverse Proxy
-  # Dashboard : http://localhost:${TRAEFIK_DASHBOARD_PORT}
+  # 7. Frontend — Interface web SPA (Nginx + proxy vers API)
+  # Accès : http://localhost:3001
+  # Hash-only signing : SHA-256 calculé localement (Web Crypto)
+  # -----------------------------------------------------------
+  frontend:
+    build: ./frontend
+    container_name: pki-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3001}:80"
+    depends_on:
+      signature-api:
+        condition: service_healthy
+    networks:
+      - pki-dmz
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  # -----------------------------------------------------------
+  # 8. Traefik v3 — Reverse Proxy / Edge Gateway
   # -----------------------------------------------------------
   gateway:
     image: traefik:v3.0
@@ -207,9 +230,11 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--log.level=INFO"
+      - "--accesslog=true"
     ports:
       - "80:80"
       - "443:443"
@@ -217,11 +242,12 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - traefik-certs:/certs
+      - ./gateway/traefik/dynamic:/etc/traefik/dynamic:ro
     networks:
       - pki-dmz
 
   # -----------------------------------------------------------
-  # 8. Vault — DÉSACTIVÉ PAR DÉFAUT
+  # 9. Vault — DÉSACTIVÉ PAR DÉFAUT
   # Lancer avec : docker compose --profile vault up -d
   # Problème connu : OOM sur Mac avec peu de RAM
   # -----------------------------------------------------------
