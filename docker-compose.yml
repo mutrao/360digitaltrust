@@ -174,8 +174,8 @@ services:
       EJBCA_REST_URL: ${EJBCA_REST_API_URL}
       EJBCA_ADMIN_PASSWORD: ${EJBCA_ADMIN_PASSWORD}
       REDIS_URL: redis://:${REDIS_PASSWORD}@cache:6379/0
-      VAULT_ADDR: ""
-      VAULT_TOKEN: ""
+      VAULT_ADDR: ${VAULT_ADDR:-}
+      VAULT_TOKEN: ${VAULT_DEV_ROOT_TOKEN_ID:-}
       CRL_BASE_URL: http://crl.${DOMAIN}/crl
       OCSP_URL: http://pki-ca:8009/ejbca/publicweb/status/ocsp
       CA_VERIFY_SSL: "false"

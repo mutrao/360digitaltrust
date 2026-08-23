@@ -13,6 +13,9 @@ class VaultService:
     @classmethod
     def connect(cls):
         global _vault
+        if not settings.VAULT_ADDR:
+            log.info("vault.disabled", reason="VAULT_ADDR not set")
+            return
         _vault = hvac.Client(
             url=settings.VAULT_ADDR,
             token=settings.VAULT_TOKEN,
@@ -23,9 +26,16 @@ class VaultService:
             log.warning("vault.not_authenticated")
 
     @classmethod
+    def is_available(cls) -> bool:
+        return _vault is not None and _vault.is_authenticated()
+
+    @classmethod
     def write_secret(cls, path: str, data: dict):
         if _vault is None:
-            raise RuntimeError("Vault non connecté")
+            raise RuntimeError(
+                "Vault non disponible — démarrez-le avec : "
+                "docker compose --profile vault up -d vault"
+            )
         _vault.secrets.kv.v2.create_or_update_secret(
             path=path,
             secret=data,
