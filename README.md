@@ -68,6 +68,7 @@ Guide complet : [`docs/INSTALLATION.md`](docs/INSTALLATION.md).
 | Document | Contenu |
 |---|---|
 | [Architecture](docs/ARCHITECTURE.md) | Vue d'ensemble et décisions techniques |
+| [Spécification API](docs/API_SPECIFICATION.md) | Surface du service de signature, et spécification des clés éphémères |
 | [Intégration backend](docs/BACKEND_INTEGRATION.md) | Cartographie de l'API, fonctionnalités manquantes |
 | [Sécurité](docs/SECURITY.md) | Décisions, limites connues, liste de contrôle avant production |
 | [Plan frontend](docs/FRONTEND_PLAN.md) | Conception de l'interface |
