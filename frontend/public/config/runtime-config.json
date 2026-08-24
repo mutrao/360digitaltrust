@@ -1,0 +1,18 @@
+{
+  "apiBaseUrl": "/api",
+  "keycloak": {
+    "url": "",
+    "realm": "",
+    "clientId": "",
+    "scope": "openid profile email"
+  },
+  "branding": {
+    "companyName": "360DigitalTrust",
+    "productName": "Signature électronique",
+    "logoUrl": "",
+    "accentRgb": "27 95 168",
+    "supportEmail": "",
+    "legalNoticeUrl": ""
+  },
+  "defaultLocale": "fr"
+}

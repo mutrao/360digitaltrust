@@ -132,6 +132,12 @@ async def sign_hash(req: SignHashRequest):
 
     except HTTPException:
         raise
+    except KeyError as e:
+        log.warning("sign.hash.key_not_found", key_id=req.key_id)
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        log.warning("sign.hash.bad_input", error=str(e))
+        raise HTTPException(status_code=400, detail=f"Données invalides : {e}")
     except Exception as e:
         log.error("sign.hash.error", error=str(e))
         raise HTTPException(status_code=500, detail=f"Erreur signature : {e}")

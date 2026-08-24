@@ -1,0 +1,173 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════
+   Tokens — thème clair par défaut sur :root nu.
+   Le mode « système » ne pose aucun attribut : seul prefers-color-scheme
+   distingue clair et sombre. Un choix explicite pose data-theme et gagne
+   dans les deux sens.
+   --c-accent est surchargeable au runtime par le branding client.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --c-ink: 11 31 51;
+  --c-slate: 90 107 127;
+  --c-muted: 132 147 165;
+  --c-line: 228 233 240;
+  --c-surface: 255 255 255;
+  --c-raised: 255 255 255;
+  --c-ground: 247 249 252;
+  --c-shadow: 11 31 51;
+
+  --c-accent: 27 95 168;
+  --c-accent-hover: 21 78 139;
+  --c-accent-soft: 233 241 250;
+  --c-accent-ink: 255 255 255;
+
+  --c-success: 21 128 61;
+  --c-success-soft: 236 246 239;
+  --c-warning: 180 83 9;
+  --c-warning-soft: 253 246 235;
+  --c-danger: 185 28 28;
+  --c-danger-soft: 253 240 240;
+
+  --sidebar-w: 248px;
+  --sidebar-w-collapsed: 60px;
+  --topbar-h: 56px;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --c-ink: 226 234 244;
+    --c-slate: 154 169 187;
+    --c-muted: 118 134 153;
+    --c-line: 32 45 63;
+    --c-surface: 17 25 37;
+    --c-raised: 22 32 46;
+    --c-ground: 11 17 26;
+    --c-shadow: 0 0 0;
+
+    --c-accent: 90 160 240;
+    --c-accent-hover: 122 181 247;
+    --c-accent-soft: 22 40 63;
+    --c-accent-ink: 8 15 25;
+
+    --c-success: 74 190 122;
+    --c-success-soft: 16 40 28;
+    --c-warning: 226 160 62;
+    --c-warning-soft: 46 34 14;
+    --c-danger: 235 111 111;
+    --c-danger-soft: 48 22 22;
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --c-ink: 226 234 244;
+  --c-slate: 154 169 187;
+  --c-muted: 118 134 153;
+  --c-line: 32 45 63;
+  --c-surface: 17 25 37;
+  --c-raised: 22 32 46;
+  --c-ground: 11 17 26;
+  --c-shadow: 0 0 0;
+
+  --c-accent: 90 160 240;
+  --c-accent-hover: 122 181 247;
+  --c-accent-soft: 22 40 63;
+  --c-accent-ink: 8 15 25;
+
+  --c-success: 74 190 122;
+  --c-success-soft: 16 40 28;
+  --c-warning: 226 160 62;
+  --c-warning-soft: 46 34 14;
+  --c-danger: 235 111 111;
+  --c-danger-soft: 48 22 22;
+
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-line;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ground text-ink font-sans text-base antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  /* Focus visible et cohérent partout — exigence WCAG 2.1 AA. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--c-ground));
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-semibold text-ink;
+    text-wrap: balance;
+  }
+
+  /* Les données cryptographiques doivent ressembler à des données. */
+  code, kbd, samp, .font-mono {
+    font-variant-ligatures: none;
+  }
+
+  /* Chiffres alignés dans les tableaux et compteurs. */
+  table, .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::selection {
+    @apply bg-accent-soft text-accent;
+  }
+}
+
+@layer components {
+  /* Conteneur de débordement pour tableaux et blocs larges :
+     le corps de page ne défile jamais horizontalement. */
+  .scroll-x {
+    @apply overflow-x-auto;
+    scrollbar-width: thin;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded bg-line/60;
+  }
+
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 animate-shimmer;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(var(--c-surface) / 0.55),
+      transparent
+    );
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skeleton::after {
+    display: none;
+  }
+}
