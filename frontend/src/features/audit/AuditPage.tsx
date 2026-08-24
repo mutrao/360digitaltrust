@@ -314,7 +314,7 @@ export function AuditPage(): JSX.Element {
                 })}
               </tbody>
             </Table>
-            <TruncationNotice shown={data?.logs.length ?? 0} limit={LIMIT} />
+            <TruncationNotice shown={data?.logs?.length ?? 0} limit={LIMIT} />
           </>
         )}
       </Card>

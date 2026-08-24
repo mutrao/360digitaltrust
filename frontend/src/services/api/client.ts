@@ -115,11 +115,20 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   if (res.status === 204) return undefined as T;
 
-  const contentType = res.headers.get('content-type') ?? '';
-  if (!contentType.includes('application/json')) {
-    return (await res.text()) as unknown as T;
+  // Toutes les routes consommées ici renvoient du JSON. Une réponse d'un autre
+  // type signifie qu'on ne parle pas au backend attendu — typiquement la page
+  // HTML d'un reverse proxy mal configuré. La rendre telle quelle donnerait
+  // une valeur qui ment sur son type et casserait un composant plus loin, sans
+  // rapport visible avec la cause.
+  try {
+    return (await res.json()) as T;
+  } catch {
+    throw new ApiError(
+      res.status,
+      "Réponse inattendue : le service n'a pas renvoyé de JSON.",
+      url,
+    );
   }
-  return (await res.json()) as T;
 }
 
 export const api = {

@@ -256,7 +256,7 @@ export function RequestsPage(): JSX.Element {
                 ))}
               </tbody>
             </Table>
-            <TruncationNotice shown={data?.workflows.length ?? 0} limit={LIMIT} />
+            <TruncationNotice shown={data?.workflows?.length ?? 0} limit={LIMIT} />
           </>
         )}
       </Card>

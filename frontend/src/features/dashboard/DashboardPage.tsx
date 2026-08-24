@@ -246,7 +246,7 @@ export function DashboardPage(): JSX.Element {
             <SkeletonTable rows={5} cols={2} />
           ) : activity.isError ? (
             <ErrorState error={activity.error} onRetry={() => void activity.refetch()} />
-          ) : (activity.data?.logs.length ?? 0) === 0 ? (
+          ) : (activity.data?.logs?.length ?? 0) === 0 ? (
             <EmptyState
               icon={FileSignature}
               title="Aucune activité"
@@ -254,7 +254,7 @@ export function DashboardPage(): JSX.Element {
             />
           ) : (
             <ul>
-              {activity.data?.logs.map((entry, i) => (
+              {activity.data?.logs?.map((entry, i) => (
                 <ActivityRow
                   key={entry.signature_id ?? entry.workflow_id ?? `${entry.timestamp}-${i}`}
                   entry={entry}
