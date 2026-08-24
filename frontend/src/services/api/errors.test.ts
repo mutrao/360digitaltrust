@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, NetworkError, toMessage, toToastText } from './errors';
+import { ApiError, NetworkError, toMessage, toReference, toToastText } from './errors';
 
 describe('traduction des erreurs API', () => {
   it('traduit les statuts HTTP en messages humains', () => {
@@ -8,15 +8,36 @@ describe('traduction des erreurs API', () => {
       'Action impossible',
     );
     expect(toMessage(new ApiError(403, '', '/v1/users')).title).toBe('Accès refusé');
+    // 502 vient du reverse proxy : c'est l'API qui est muette, pas EJBCA.
+    // L'ancien libellé accusait la PKI et envoyait l'exploitant sur une
+    // fausse piste.
     expect(toMessage(new ApiError(502, '', '/v1/certificates')).title).toContain(
-      'Autorité de certification',
+      'Service de signature injoignable',
     );
   });
 
-  it("n'expose jamais le code HTTP brut à l'utilisateur", () => {
+  it("n'expose ni trace d'exécution ni détail technique à l'utilisateur", () => {
     const text = toToastText(new ApiError(500, 'Traceback: KeyError at line 42', '/x'));
-    expect(text).not.toContain('500');
     expect(text).not.toContain('Traceback');
+    expect(text).not.toContain('KeyError');
+    // Une référence courte reste affichée : elle rend un signalement exploitable.
+    expect(text).toContain('réf. HTTP 500');
+  });
+
+  it('mappe tous les statuts que la pile peut réellement produire', () => {
+    // Un statut non mappé retombait sur un message générique qui n'aidait
+    // ni l'utilisateur ni le dépannage.
+    for (const status of [400, 401, 403, 404, 405, 408, 409, 413, 415, 422,
+                          429, 500, 501, 502, 503, 504]) {
+      const m = toMessage(new ApiError(status, '', '/x'));
+      expect(m.title, `statut ${status} non mappé`).not.toBe('Une erreur est survenue');
+    }
+  });
+
+  it('fournit une référence citable pour chaque type d’erreur', () => {
+    expect(toReference(new ApiError(504, '', '/x'))).toBe('HTTP 504');
+    expect(toReference(new NetworkError('/x', 'timeout'))).toBe('réseau');
+    expect(toReference(new TypeError('boum'))).toBe('TypeError');
   });
 
   it('reconnaît le cas Vault indisponible et propose une issue', () => {

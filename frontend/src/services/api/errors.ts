@@ -85,19 +85,55 @@ const BY_STATUS: Record<number, Message> = {
     description: 'Vous avez effectué trop d’opérations en peu de temps.',
     hint: 'Patientez une minute avant de réessayer.',
   },
+  405: {
+    title: 'Opération non autorisée',
+    description:
+      "Le service a refusé cette opération. L'interface et le service de " +
+      'signature ne sont probablement pas dans la même version.',
+    hint: 'Consultez Administration → Diagnostic pour comparer les versions.',
+  },
+  408: {
+    title: 'Délai dépassé',
+    description: "Le service n'a pas répondu dans le temps imparti.",
+    hint: 'Réessayez ; le service est peut-être surchargé.',
+  },
+  413: {
+    title: 'Contenu trop volumineux',
+    description: 'Les données envoyées dépassent la taille acceptée par le service.',
+  },
+  415: {
+    title: 'Format refusé',
+    description: "Le service n'accepte pas le format des données envoyées.",
+  },
   500: {
     title: 'Erreur du service',
-    description: "Le service de signature a rencontré une erreur inattendue.",
+    description: 'Le service de signature a rencontré une erreur inattendue.',
     hint: 'Si le problème persiste, consultez Administration → Diagnostic.',
   },
+  501: {
+    title: 'Fonctionnalité absente',
+    description: "Le service de signature ne propose pas cette opération.",
+  },
+  // 502 vient du reverse proxy : c'est l'API elle-même qui ne répond pas.
+  // Ne pas confondre avec une erreur EJBCA, que l'API renvoie elle-même en 502
+  // — le message reste donc volontairement neutre sur la cause exacte.
   502: {
-    title: 'Autorité de certification injoignable',
-    description: "Le service n'a pas pu contacter l'infrastructure PKI (EJBCA).",
+    title: 'Service de signature injoignable',
+    description:
+      "Le service n'a pas répondu. Il est peut-être en cours de démarrage ou " +
+      "une de ses dépendances (PKI, cache) est indisponible.",
     hint: 'Vérifiez son état dans Administration → Diagnostic.',
   },
   503: {
     title: 'Service indisponible',
     description: "Une dépendance nécessaire n'est pas démarrée.",
+  },
+  504: {
+    title: 'Délai dépassé',
+    description:
+      "Le service de signature a mis trop de temps à répondre et la requête a " +
+      'été interrompue.',
+    hint: 'Réessayez ; si cela se reproduit, consultez ses journaux.',
   },
 };
 
@@ -183,8 +219,45 @@ export function toMessage(error: unknown): Message {
   return UNKNOWN;
 }
 
-/** Message court, pour une notification. */
-export function toToastText(error: unknown): string {
+/**
+ * Référence technique courte, à citer lors d'un signalement.
+ *
+ * Sans elle, un incident ne laisse aucune trace exploitable : l'utilisateur
+ * rapporte « ça ne marche pas » et personne ne peut remonter à la cause.
+ * Elle ne contient ni jeton, ni donnée métier — seulement de quoi situer
+ * l'appel qui a échoué.
+ */
+export function toReference(error: unknown): string | null {
+  if (error instanceof NetworkError) return 'réseau';
+  if (error instanceof ApiError) return `HTTP ${error.status}`;
+  if (error instanceof Error) return error.name;
+  return null;
+}
+
+/**
+ * Journalise le détail technique pour le diagnostic.
+ *
+ * Le détail n'est jamais affiché (voir docs/SECURITY.md §8) mais le perdre
+ * complètement rend tout incident inanalysable. La console est le bon endroit :
+ * accessible à qui dépanne, invisible pour qui utilise.
+ */
+export function logError(context: string, error: unknown): void {
+  if (error instanceof ApiError) {
+    console.error(
+      `[360DT] ${context} — ${error.status} ${error.url}`,
+      error.detail || '(aucun détail)',
+    );
+    return;
+  }
+  console.error(`[360DT] ${context} — erreur inattendue`, error);
+}
+
+/** Message court, pour une notification. Journalise le détail au passage. */
+export function toToastText(error: unknown, context = 'appel API'): string {
+  logError(context, error);
+
   const m = toMessage(error);
-  return m.hint ? `${m.description} ${m.hint}` : m.description;
+  const base = m.hint ? `${m.description} ${m.hint}` : m.description;
+  const ref = toReference(error);
+  return ref ? `${base} (réf. ${ref})` : base;
 }

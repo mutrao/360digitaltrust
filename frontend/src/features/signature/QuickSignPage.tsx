@@ -63,7 +63,7 @@ export function QuickSignPage(): JSX.Element {
       );
       toast.success('Document signé', 'La signature est inscrite au journal d’audit.');
     } catch (e) {
-      toast.error('Signature impossible', toToastText(e));
+      toast.error('Signature impossible', toToastText(e, 'signature rapide'));
     }
   };
 

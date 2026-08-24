@@ -192,7 +192,7 @@ export function NewRequestPage(): JSX.Element {
       navigate(`/demandes/${result.workflow_id}`);
     } catch (e) {
       setSubmitted(false);
-      toast.error('Création impossible', toToastText(e));
+      toast.error('Création impossible', toToastText(e, 'création de demande'));
     }
   };
 

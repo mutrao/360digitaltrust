@@ -100,7 +100,7 @@ export function KeysPage(): JSX.Element {
         'Conservez son identifiant : il est nécessaire pour signer.',
       );
     } catch (e) {
-      toast.error('Génération impossible', toToastText(e));
+      toast.error('Génération impossible', toToastText(e, 'génération de clé'));
     }
   };
 
