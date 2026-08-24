@@ -206,7 +206,10 @@ services:
   # Hash-only signing : SHA-256 calculé localement (Web Crypto)
   # -----------------------------------------------------------
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
     container_name: pki-frontend
     restart: unless-stopped
     ports:
@@ -214,6 +217,20 @@ services:
     depends_on:
       signature-api:
         condition: service_healthy
+    environment:
+      # Injectées au démarrage dans /config/runtime-config.json :
+      # changer ces valeurs ne nécessite PAS de reconstruire l'image.
+      API_BASE_URL: ${API_BASE_URL:-/api}
+      KEYCLOAK_URL: ${KEYCLOAK_URL:-}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-esign-frontend}
+      BRANDING_COMPANY_NAME: ${BRANDING_COMPANY_NAME:-360DigitalTrust}
+      BRANDING_PRODUCT_NAME: ${BRANDING_PRODUCT_NAME:-Signature électronique}
+      BRANDING_LOGO_URL: ${BRANDING_LOGO_URL:-}
+      BRANDING_ACCENT_RGB: ${BRANDING_ACCENT_RGB:-27 95 168}
+      BRANDING_SUPPORT_EMAIL: ${BRANDING_SUPPORT_EMAIL:-}
+      BRANDING_LEGAL_URL: ${BRANDING_LEGAL_URL:-}
+      DEFAULT_LOCALE: ${DEFAULT_LOCALE:-fr}
     networks:
       - pki-dmz
     labels:
