@@ -194,7 +194,9 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      # Les imports (pyhanko, signxml, lxml) sont lourds : sur une machine
+      # contrainte en RAM, le premier démarrage peut demander une minute.
+      start_period: 90s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.sig-api.rule=Host(`api.${DOMAIN}`)"
