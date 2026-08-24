@@ -21,9 +21,12 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://cache:6379/0"
 
     # Vault
-    VAULT_ADDR: str = "http://vault:8210"
-    VAULT_TOKEN: str = "root-dev-token-2026"
+    VAULT_ADDR: str = ""          # vide = Vault désactivé, stockage local
+    VAULT_TOKEN: str = ""
     VAULT_MOUNT_PATH: str = "secret"
+
+    # Stockage local des clés privées (fallback sans Vault)
+    LOCAL_KEY_PATH: str = "/app/keys"
 
     # URLs publiques PKI
     CRL_BASE_URL: str = "http://crl.localhost/crl"

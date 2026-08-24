@@ -23,6 +23,7 @@ volumes:
   vault-data:
   traefik-certs:
   crl-files:
+  signing-keys:
 
 services:
 
@@ -179,8 +180,10 @@ services:
       CRL_BASE_URL: http://crl.${DOMAIN}/crl
       OCSP_URL: http://pki-ca:8009/ejbca/publicweb/status/ocsp
       CA_VERIFY_SSL: "false"
+      LOCAL_KEY_PATH: /app/keys
     volumes:
       - crl-files:/app/crl-cache:ro
+      - signing-keys:/app/keys
     ports:
       - "${SIG_API_PORT}:8000"
     networks:
