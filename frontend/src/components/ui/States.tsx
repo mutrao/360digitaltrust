@@ -7,7 +7,7 @@ import { AlertTriangle, Inbox, Lock, RefreshCw } from 'lucide-react';
 
 import { Button } from './Button';
 import { cn } from '@/lib/utils';
-import { toMessage } from '@/services/api/errors';
+import { toMessage, toReference } from '@/services/api/errors';
 
 // ── Squelettes ───────────────────────────────────────────────────
 
@@ -127,6 +127,7 @@ export function ErrorState({
   onRetry?: () => void;
 }): JSX.Element {
   const message = toMessage(error);
+  const reference = toReference(error);
   return (
     <StateShell
       icon={AlertTriangle}
@@ -136,6 +137,11 @@ export function ErrorState({
         <>
           {message.description}
           {message.hint ? <span className="mt-1 block text-muted">{message.hint}</span> : null}
+          {reference ? (
+            <span className="mt-2 block font-mono text-2xs text-muted">
+              réf. {reference}
+            </span>
+          ) : null}
         </>
       }
       action={

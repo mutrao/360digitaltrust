@@ -224,7 +224,7 @@ export function RequestDetailPage(): JSX.Element {
       toast.success('Demande annulée', 'Les signataires ne peuvent plus la signer.');
       setConfirmOpen(false);
     } catch (e) {
-      toast.error('Annulation impossible', toToastText(e));
+      toast.error('Annulation impossible', toToastText(e, 'annulation de demande'));
     }
   };
 

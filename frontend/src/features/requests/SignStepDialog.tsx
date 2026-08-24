@@ -72,7 +72,7 @@ export function SignStepDialog({
           : 'La demande passe au signataire suivant.',
       );
     } catch (e) {
-      toast.error('Signature impossible', toToastText(e));
+      toast.error('Signature impossible', toToastText(e, 'signature d’une étape'));
     }
   };
 

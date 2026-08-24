@@ -82,7 +82,7 @@ export function SignersPage(): JSX.Element {
       setForm({ name: '', email: '', role: 'signer', organization: '' });
       setCreateOpen(false);
     } catch (e) {
-      toast.error('Ajout impossible', toToastText(e));
+      toast.error('Ajout impossible', toToastText(e, 'gestion des signataires'));
     }
   };
 
@@ -93,7 +93,7 @@ export function SignersPage(): JSX.Element {
       toast.success('Signataire désactivé', 'Il ne peut plus être ajouté à une demande.');
       setToDeactivate(null);
     } catch (e) {
-      toast.error('Désactivation impossible', toToastText(e));
+      toast.error('Désactivation impossible', toToastText(e, 'gestion des signataires'));
     }
   };
 
@@ -109,7 +109,7 @@ export function SignersPage(): JSX.Element {
       setIdentity({ keyId: '', pem: '' });
       setToAttach(null);
     } catch (e) {
-      toast.error('Rattachement impossible', toToastText(e));
+      toast.error('Rattachement impossible', toToastText(e, 'gestion des signataires'));
     }
   };
 
