@@ -160,11 +160,11 @@ export function DiagnosticPage(): JSX.Element {
     {
       label: 'Coffre-fort Vault',
       state: capabilities.data
-        ? capabilities.data.storage.vault_available
+        ? capabilities.data.storage?.vault_available
           ? 'ok'
           : 'warn'
         : 'pending',
-      detail: capabilities.data?.storage.vault_available
+      detail: capabilities.data?.storage?.vault_available
         ? 'Disponible : les clés privées peuvent y être stockées.'
         : "Non démarré. Les clés privées sont conservées sur le volume local du service.",
     },

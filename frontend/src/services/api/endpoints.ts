@@ -46,15 +46,84 @@ function asList<K extends string, T>(
   return { [key]: items, total } as { [P in K]: T[] } & { total: number };
 }
 
+function obj(raw: unknown): Record<string, unknown> {
+  return raw !== null && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+}
+
+function bool(value: unknown, fallback = false): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+/**
+ * Les drapeaux de capacité pilotent l'affichage : une valeur absente doit
+ * signifier « non disponible », jamais faire échouer le rendu. Un backend plus
+ * ancien qui ignore une fonctionnalité récente la renvoie simplement absente.
+ */
+function normaliseCapabilities(raw: unknown): Capabilities {
+  const source = obj(raw);
+  const features = obj(source.features);
+  const storage = obj(source.storage);
+
+  const flag = (name: string, fallback = false): boolean =>
+    bool(features[name], fallback);
+
+  return {
+    version: typeof source.version === 'string' ? source.version : 'inconnue',
+    features: {
+      // Le socle du produit : présumé disponible si le backend ne se prononce pas.
+      hash_signing: flag('hash_signing', true),
+      pdf_signing: flag('pdf_signing'),
+      xml_signing: flag('xml_signing'),
+      cms_signing: flag('cms_signing'),
+      workflows: flag('workflows', true),
+      audit_trail: flag('audit_trail', true),
+      users: flag('users', true),
+      key_generation: flag('key_generation', true),
+      certificate_issuance: flag('certificate_issuance'),
+      ocsp: flag('ocsp'),
+      timestamping: flag('timestamping'),
+      // Non implémentées : l'absence vaut « non », sans présomption.
+      document_storage: flag('document_storage'),
+      email_notifications: flag('email_notifications'),
+      templates: flag('templates'),
+      pdf_field_placement: flag('pdf_field_placement'),
+      authentication: flag('authentication'),
+    },
+    storage: {
+      vault_available: bool(storage.vault_available),
+      local_keys: bool(storage.local_keys, true),
+    },
+  };
+}
+
+function normaliseStorageBackends(raw: unknown): StorageBackendsResponse {
+  const source = obj(raw);
+  const local = obj(source.local);
+  const vault = obj(source.vault);
+
+  return {
+    local: {
+      // Le stockage local ne dépend d'aucun service externe : toujours offert.
+      available: bool(local.available, true),
+      label: typeof local.label === 'string' ? local.label : 'Stockage local (volume API)',
+    },
+    vault: {
+      available: bool(vault.available),
+      label: typeof vault.label === 'string' ? vault.label : 'HashiCorp Vault',
+    },
+  };
+}
+
 export const systemApi = {
   health: () => api.get<HealthResponse>('/v1/health'),
-  capabilities: () => api.get<Capabilities>('/v1/capabilities'),
+  capabilities: async () => normaliseCapabilities(await api.get<unknown>('/v1/capabilities')),
 };
 
 export const keysApi = {
   generate: (body: GenerateKeyRequest) =>
     api.post<GenerateKeyResponse>('/v1/keys/generate', body),
-  storageBackends: () => api.get<StorageBackendsResponse>('/v1/keys/storage-backends'),
+  storageBackends: async () =>
+    normaliseStorageBackends(await api.get<unknown>('/v1/keys/storage-backends')),
 };
 
 export const certificatesApi = {

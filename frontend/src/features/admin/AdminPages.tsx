@@ -317,10 +317,10 @@ export function AdminSecurityPage(): JSX.Element {
     },
     {
       title: 'Clés privées',
-      detail: caps?.storage.vault_available
+      detail: caps?.storage?.vault_available
         ? 'Stockées dans HashiCorp Vault. Elles ne sont jamais transmises au navigateur.'
         : "Stockées sur le volume local du service de signature (permissions 0600). Vault est recommandé en production.",
-      state: caps?.storage.vault_available ? ('ok' as const) : ('warn' as const),
+      state: caps?.storage?.vault_available ? ('ok' as const) : ('warn' as const),
     },
     {
       title: 'Contrôle d\'accès côté serveur',

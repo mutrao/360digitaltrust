@@ -147,7 +147,7 @@ export function NewRequestPage(): JSX.Element {
 
   /** Reprend un signataire de l'annuaire pour éviter la ressaisie. */
   const pickFromDirectory = (key: string, userId: string): void => {
-    const found = directory?.users.find((u) => u.id === userId);
+    const found = directory?.users?.find((u) => u.id === userId);
     if (!found) return;
     updateSigner(key, { user_id: found.id, name: found.name, email: found.email });
   };
@@ -162,7 +162,7 @@ export function NewRequestPage(): JSX.Element {
   const directoryOptions = [
     { value: '', label: "Saisir manuellement…" },
     ...(directory?.users
-      .filter((u) => u.status === 'active')
+      ?.filter((u) => u.status === 'active')
       .map((u) => ({ value: u.id, label: `${u.name} — ${u.email}` })) ?? []),
   ];
 

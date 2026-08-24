@@ -35,7 +35,7 @@ export function QuickSignPage(): JSX.Element {
   const [result, setResult] = useState<SignHashResponse | null>(null);
 
   const identities =
-    directory?.users.filter((u) => u.key_id && u.status === 'active') ?? [];
+    directory?.users?.filter((u) => u.key_id && u.status === 'active') ?? [];
 
   const ready =
     digest !== null && keyId.trim() !== '' && certificatePem.includes('BEGIN CERTIFICATE');

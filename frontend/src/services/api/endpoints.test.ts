@@ -8,7 +8,7 @@
  */
 import { afterEach, beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 
-import { auditApi, usersApi, workflowsApi } from './endpoints';
+import { auditApi, keysApi, systemApi, usersApi, workflowsApi } from './endpoints';
 import { ApiError } from './errors';
 import { loadRuntimeConfig } from '@/lib/config';
 
@@ -86,6 +86,55 @@ describe('normalisation des réponses de liste', () => {
     mockJson({ users: [{ id: 'a' }, { id: 'b' }] });
     const res = await usersApi.list();
     expect(res.total).toBe(2);
+  });
+});
+
+describe('normalisation des réponses imbriquées', () => {
+  it('garantit local et vault même si la réponse est vide', async () => {
+    mockJson({});
+    const b = await keysApi.storageBackends();
+    expect(b.vault.available).toBe(false);
+    // Le stockage local ne dépend d'aucun service : toujours proposé.
+    expect(b.local.available).toBe(true);
+    expect(typeof b.local.label).toBe('string');
+  });
+
+  it('préserve la disponibilité réelle de Vault', async () => {
+    mockJson({
+      local: { available: true, label: 'Volume API' },
+      vault: { available: true, label: 'Vault interne' },
+    });
+    const b = await keysApi.storageBackends();
+    expect(b.vault.available).toBe(true);
+    expect(b.vault.label).toBe('Vault interne');
+  });
+
+  it('garantit features et storage sur les capacités', async () => {
+    mockJson({ version: '2.0.0' });
+    const c = await systemApi.capabilities();
+    expect(c.features.templates).toBe(false);
+    expect(c.storage.vault_available).toBe(false);
+    // Le socle du produit reste présumé disponible.
+    expect(c.features.hash_signing).toBe(true);
+  });
+
+  it('respecte les drapeaux fournis par le backend', async () => {
+    mockJson({
+      version: '2.0.0',
+      features: { hash_signing: false, templates: true },
+      storage: { vault_available: true },
+    });
+    const c = await systemApi.capabilities();
+    expect(c.features.hash_signing).toBe(false);
+    expect(c.features.templates).toBe(true);
+    expect(c.storage.vault_available).toBe(true);
+  });
+
+  it('ignore une valeur du mauvais type', async () => {
+    mockJson({ features: { workflows: 'oui' }, storage: null });
+    const c = await systemApi.capabilities();
+    expect(c.features.workflows).toBe(true); // valeur par défaut, pas la chaîne
+    expect(c.storage.vault_available).toBe(false);
   });
 });
 
