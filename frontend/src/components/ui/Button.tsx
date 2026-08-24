@@ -32,6 +32,7 @@ const button = cva(
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof button> {
+  /** Rend l'élément enfant à la place du <button> — pour un lien de navigation. */
   asChild?: boolean;
   loading?: boolean;
 }
@@ -41,18 +42,31 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     { className, variant, size, asChild, loading, children, disabled, ...props },
     ref,
   ) => {
-    const Comp = asChild ? Slot : 'button';
+    const classes = cn(button({ variant, size }), className);
+
+    // Slot n'accepte qu'un seul enfant : lui passer `children` accompagné d'un
+    // indicateur de chargement le fait échouer au rendu. Les boutons `asChild`
+    // sont des liens de navigation, jamais des actions asynchrones — ils n'ont
+    // donc pas d'état de chargement à afficher.
+    if (asChild) {
+      return (
+        <Slot ref={ref} className={classes} {...props}>
+          {children}
+        </Slot>
+      );
+    }
+
     return (
-      <Comp
+      <button
         ref={ref}
-        className={cn(button({ variant, size }), className)}
+        className={classes}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         {...props}
       >
         {loading ? <Loader2 className="animate-spin" aria-hidden /> : null}
         {children}
-      </Comp>
+      </button>
     );
   },
 );
