@@ -44,7 +44,7 @@ export function SignStepDialog({
    * on lui évite de le ressaisir.
    */
   const known = useMemo(
-    () => users?.users.find((u) => u.id === signer.user_id && u.key_id),
+    () => users?.users?.find((u) => u.id === signer.user_id && u.key_id),
     [users, signer.user_id],
   );
 

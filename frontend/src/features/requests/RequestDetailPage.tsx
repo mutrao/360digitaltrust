@@ -331,7 +331,7 @@ export function RequestDetailPage(): JSX.Element {
             Plutôt qu'un bouton « Envoyer » inerte, on donne le lien à transmettre.
           */}
           {workflow.status === 'pending' &&
-          caps?.features.email_notifications === false ? (
+          caps?.features?.email_notifications === false ? (
             <Card>
               <CardHeader
                 title="Inviter les signataires"

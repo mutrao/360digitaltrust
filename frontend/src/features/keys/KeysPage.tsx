@@ -62,14 +62,14 @@ export function KeysPage(): JSX.Element {
   const [useVault, setUseVault] = useState(false);
   const [keys, setKeys] = useState<SessionKey[]>([]);
 
-  const vaultAvailable = backends?.vault.available ?? false;
+  const vaultAvailable = backends?.vault?.available ?? false;
 
   const storageOptions = [
-    { value: 'local', label: backends?.local.label ?? 'Stockage local (volume API)' },
+    { value: 'local', label: backends?.local?.label ?? 'Stockage local (volume API)' },
     {
       value: 'vault',
       label: vaultAvailable
-        ? (backends?.vault.label ?? 'HashiCorp Vault')
+        ? (backends?.vault?.label ?? 'HashiCorp Vault')
         : 'HashiCorp Vault — non démarré',
       disabled: !vaultAvailable,
     },
